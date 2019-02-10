@@ -1,0 +1,31 @@
+IF CORE:TAG = "fadec" {
+
+    WAIT 10.
+
+    PRINT("FADEC On-line.").    
+    
+    WAIT UNTIL STATUS = "ORBITING".
+
+    LIST ENGINES IN AllEngs.
+    FOR eng IN AllEngs {
+        SET eng:THRUSTLIMIT TO 8.
+    }
+
+    WAIT 1.
+    CORE:DEACTIVATE.
+}
+
+
+IF SHIP:STATUS = "PRELAUNCH" {
+
+    SET STEERINGMANAGER:MAXSTOPPINGTIME TO 10.
+    SET STEERINGMANAGER:PITCHPID:KD TO 1.
+    SET STEERINGMANAGER:YAWPID:KD TO 1.
+    SET STEERINGMANAGER:ROLLPID:KD TO 1.
+
+    RUN launch_asc(200000). // Launches to 200km
+
+    WAIT 5.
+
+    RUN DEORBITSP(0.5).
+}
