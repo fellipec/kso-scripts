@@ -152,7 +152,7 @@ FUNCTION TakeOff {
 ////////////////////
 
 // GUI FOR TAKE OFF
-IF SHIP:STATUS = "LANDED" {
+IF SHIP:STATUS = "LANDED" OR SHIP:STATUS = "PRELAUNCH" {
     LOCAL guiTO IS GUI(300).
     LOCAL labelAutoTakeoff IS guiTO:ADDLABEL("<size=20><b>Auto takeoff?</b></size>").
     SET labelAutoTakeoff:STYLE:ALIGN TO "CENTER".
@@ -481,7 +481,8 @@ local BankAnglePID is PIDLOOP(2,0.1,0.3,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 //PID Throttle
-local ThrottlePID is PIDLOOP(0.01,0.006,0.016,0,1). 
+//local ThrottlePID is PIDLOOP(0.01,0.006,0.016,0,1). 
+local ThrottlePID is PIDLOOP(0.01,0.006,0.036,0,1). 
 SET ThrottlePID:SETPOINT TO 0. 
 
 //Autotrim parameters
