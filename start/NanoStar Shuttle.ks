@@ -1,19 +1,4 @@
-IF CORE:TAG = "fadec" {
 
-    WAIT 10.
-
-    PRINT("FADEC On-line.").    
-    
-    WAIT UNTIL STATUS = "ORBITING".
-
-    LIST ENGINES IN AllEngs.
-    FOR eng IN AllEngs {
-        SET eng:THRUSTLIMIT TO 8.
-    }
-
-    WAIT 1.
-    CORE:DEACTIVATE.
-}
 
 
 IF SHIP:STATUS = "PRELAUNCH" {
@@ -27,5 +12,5 @@ IF SHIP:STATUS = "PRELAUNCH" {
 
     WAIT 5.
 
-    RUN DEORBITSP(1.1).
+    RUN DEORBITSP(-2).
 }

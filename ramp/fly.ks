@@ -461,7 +461,7 @@ ON ABORT {
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(0.03,0.003,0.007,-1,1).
+local ElevatorPID is PIDLOOP(0.035,0.003,0.010,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID Pitch Angle
@@ -473,7 +473,7 @@ local AileronPID is PIDLOOP(0.004,0.001,0.008,-1,1).
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
-local YawDamperPID is PIDLOOP(0.002,0.003,0.008,-1,1). 
+local YawDamperPID is PIDLOOP(0.01,0.006,0.008,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -661,6 +661,7 @@ until SafeToExit {
                 // Adjust craft flight
                 IF RA > 20 {
                     SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 3).
+                    //SET PitchAnglePID:KP to PitchAnglePID:KP * 1.2.
                     IF AirSPD > 80 {
                         IF NOT BRAKES { BRAKES ON. }
                     }
