@@ -473,7 +473,7 @@ local AileronPID is PIDLOOP(0.004,0.001,0.008,-1,1).
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
-local YawDamperPID is PIDLOOP(0.01,0.006,0.008,-1,1). 
+local YawDamperPID is PIDLOOP(0.020,0.006,0.008,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -523,6 +523,8 @@ local PREVIOUSLNAV is "".
 local PREVIOUSVNAV is "".
 local RA is RadarAltimeter().
 local ShipStatus is Ship:Status.
+local ShipResources is "".
+local ShuttleWithJets is False.
 local TargetCoord is RWYKSC.
 local TGTAltitude is 1000.
 local TGTBank is 0.
@@ -543,7 +545,18 @@ IF KindOfCraft = "Shuttle" {
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
     SET FLAREALT TO 300.
-    Set PitchAnglePID:MinOutput to -40.
+    SET PitchAnglePID:MinOutput to -40.
+    SET PitchAnglePID:KD to 0.02.
+    SET ElevatorPID:KP TO 0.035. 
+    SET ElevatorPID:KI TO 0.020. 
+    SET ElevatorPID:KD TO 0.015. 
+
+    LIST Resources IN ShipResources.
+    ShuttleWithJets OFF.
+    FOR rsr IN ShipResources {
+        IF rsr:name = "IntakeAir" ShuttleWithJets ON.
+    }
+
     uiChime().
 }
 ELSE IF KindOfCraft = "Plane" {
@@ -640,6 +653,9 @@ until SafeToExit {
                 ELSE IF KindOfCraft = "Shuttle" {
                     SET TGTSpeed to max(SQRT(TGTAltitude)*10,100).
                     SET ATMODE to "OFF".
+                    IF SHUTTLEWITHJETS {
+                        If TGTSpeed < 300 SET ATMODE TO "SPD".
+                    }
                     SET BRAKES to AirSPD > TGTSpeed.
                 }
             }
@@ -652,15 +668,15 @@ until SafeToExit {
                     SET VNAVMODE TO "PIT".
                     SET TGTHeading TO 90.
                     PitchAnglePID:RESET.
-                    SET ElevatorPID:Kp TO ElevatorPID:Kp*2.
-                    SET ElevatorPID:Ki to ElevatorPID:Ki/4.
-                    SET ElevatorPID:Kd to ElevatorPID:Kd*2.
+                    SET ElevatorPID:Kp TO ElevatorPID:Kp*2.2.
+                    SET ElevatorPID:Ki to ElevatorPID:Ki*1.2.
+                    SET ElevatorPID:Kd to ElevatorPID:Kd*1.5.
                     SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
                     SET ATMODE TO "OFF".
                 }           
                 // Adjust craft flight
                 IF RA > 20 {
-                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 3).
+                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED).
                     //SET PitchAnglePID:KP to PitchAnglePID:KP * 1.2.
                     IF AirSPD > 80 {
                         IF NOT BRAKES { BRAKES ON. }

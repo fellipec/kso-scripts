@@ -71,7 +71,7 @@ function ascentThrottle {
     local ApoPercent is ship:obt:apoapsis/apo.
     local ApoCompensation is 0.
     if ApoPercent > 0.9 set ApoCompensation to (ApoPercent - 0.9) * 10.
-    return 1 - min(1,max(0,ApoCompensation)).
+    return 1 - min(0.9,max(0,ApoCompensation)).
   }
 }
 
@@ -95,6 +95,7 @@ function ascentStaging {
       }
       if eng:flameout {
         set Nlfo to Nlfo + 1.
+        eng:shutdown. 
       }
     }
   }

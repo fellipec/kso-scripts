@@ -12,5 +12,5 @@ IF SHIP:STATUS = "PRELAUNCH" {
 
     WAIT 5.
 
-    RUN DEORBITSP(-2).
+    RUN DEORBITSP(0).
 }
