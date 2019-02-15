@@ -461,7 +461,7 @@ ON ABORT {
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(0.035,0.003,0.010,-1,1).
+local ElevatorPID is PIDLOOP(0.035,0.010,0.022,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID Pitch Angle
@@ -654,7 +654,7 @@ until SafeToExit {
                     SET TGTSpeed to max(SQRT(TGTAltitude)*10,100).
                     SET ATMODE to "OFF".
                     IF SHUTTLEWITHJETS {
-                        If TGTSpeed < 300 SET ATMODE TO "SPD".
+                        If AirSPD < 300 or TGTSpeed < 300 SET ATMODE TO "SPD".
                     }
                     SET BRAKES to AirSPD > TGTSpeed.
                 }
