@@ -8,7 +8,7 @@ IF CORE:TAG = "fadec" {
 
     LIST ENGINES IN AllEngs.
     FOR eng IN AllEngs {
-        SET eng:THRUSTLIMIT TO 8.
+        if eng:maxthrust > 200 SET eng:THRUSTLIMIT TO 15.
     }
 
     WAIT 1.
@@ -26,6 +26,7 @@ IF SHIP:STATUS = "PRELAUNCH" {
     RUN launch_asc(200000). // Launches to 200km
 
     WAIT 5.
+    BAYS ON.
 
-    RUN DEORBITSP(1.1).
+    RUN DEORBITSP(0).
 }

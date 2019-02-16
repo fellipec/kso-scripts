@@ -101,18 +101,21 @@ function ascentStaging {
   }
 
   if Nsrb > 0 {
+    wait 1.
     stage.
     set launch_tSrbSep to time:seconds.
     set launch_tStage to launch_tSrbSep.
     uiBanner("Launch","Stage " + ThisStage + " separated. " + Nsrb + " SRBs discarded.").
   } else if (Nlfo > 0) {
     wait until stage:ready.
-    stage.
+    wait 1.
+    stage. 
     set launch_tStage to time:seconds.
     uiBanner("Launch","Stage " + ThisStage + " separated. " + Nlfo + " Engines out.").
   } else if Neng = 0 {
     wait until stage:ready.
-    stage.
+    wait 1.
+    stage. 
     set launch_tStage to time:seconds.
     uiBanner("Launch","Stage " + ThisStage + " activated").
   }
@@ -165,7 +168,7 @@ unlock throttle.
 if stage:resourceslex:haskey("LiquidFuel") {
   if stage:resourceslex["LiquidFuel"]:capacity > 0 { // Checks to avoid NaN error
     if stage:resourceslex["LiquidFuel"]:amount / stage:resourceslex["LiquidFuel"]:capacity < 0.1 {
-      stage.
+      wait 1. stage.
       uiBanner("Launch","Discarding tank").
       wait until stage:ready.
     }
@@ -174,7 +177,7 @@ if stage:resourceslex:haskey("LiquidFuel") {
 // Corner case: circularization stage is not bottom most (i.e. there is an
 // aeroshell ejection in a lower stage).
 until ship:availablethrust > 0 {
-  stage.
+  wait 1. stage.
   uiBanner("Launch","Discard non-propulsive stage").
   wait until stage:ready.
 }

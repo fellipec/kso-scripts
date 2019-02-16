@@ -1,16 +1,32 @@
+@lazyglobal off.
 
+runoncepath("lib_ui").
+SET STEERINGMANAGER:MAXSTOPPINGTIME TO 3.
 
+local OrbitOptions is lexicon(
+	"C","Exit to command line",
+	"1","Rendez-vous with MIR",
+	"2","Rendez-vous with ISS",
+	"X","Return to KSC").
 
-IF SHIP:STATUS = "PRELAUNCH" {
-
-    SET STEERINGMANAGER:MAXSTOPPINGTIME TO 10.
-    SET STEERINGMANAGER:PITCHPID:KD TO 1.
-    SET STEERINGMANAGER:YAWPID:KD TO 1.
-    SET STEERINGMANAGER:ROLLPID:KD TO 1.
-
-    RUN launch_asc(200000). // Launches to 200km
-
-    WAIT 5.
-
-    RUN DEORBITSP(0).
+IF ship:status = "PRELAUNCH" {
+	RUN LAUNCH_ASC(200000).
+	RCS ON.
+	reboot.
+}
+ELSE IF ship:status = "ORBITING" {
+	RCS ON.
+	local choice is uiTerminalMenu(OrbitOptions).
+	if choice = 1 {
+		SET TARGET TO VESSEL("MIR").
+		RUN RENDEZVOUS.
+	}
+	if choice = 2 {
+		SET TARGET TO VESSEL("ISS").
+		RUN RENDEZVOUS.
+	}
+	else if choice = "X" {
+		STAGE. // Activate jet engines before reentry
+		run deorbitsp(-2).
+	}
 }

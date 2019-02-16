@@ -654,6 +654,7 @@ until SafeToExit {
                     SET TGTSpeed to max(SQRT(TGTAltitude)*10,100).
                     SET ATMODE to "OFF".
                     IF SHUTTLEWITHJETS {
+                        SET TGTSpeed to max(SQRT(TGTAltitude)*6,100).
                         If AirSPD < 300 or TGTSpeed < 300 SET ATMODE TO "SPD".
                     }
                     SET BRAKES to AirSPD > TGTSpeed.
@@ -671,12 +672,13 @@ until SafeToExit {
                     SET ElevatorPID:Kp TO ElevatorPID:Kp*2.2.
                     SET ElevatorPID:Ki to ElevatorPID:Ki*1.2.
                     SET ElevatorPID:Kd to ElevatorPID:Kd*1.5.
-                    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-                    SET ATMODE TO "OFF".
+                    SET PitchAnglePID:KI to PitchAnglePID:KI*20.
+                    SET TGTSpeed TO 70.
+
                 }           
                 // Adjust craft flight
                 IF RA > 20 {
-                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED).
+                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 10).
                     //SET PitchAnglePID:KP to PitchAnglePID:KP * 1.2.
                     IF AirSPD > 80 {
                         IF NOT BRAKES { BRAKES ON. }
@@ -690,6 +692,8 @@ until SafeToExit {
                     IF BRAKES {BRAKES OFF.}
                     SET LNAVMODE TO "BNK".
                     SET TGTBank TO 0.
+                    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+                    SET ATMODE TO "OFF".
                 }
 
             }

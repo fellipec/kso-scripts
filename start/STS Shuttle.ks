@@ -1,9 +1,31 @@
-IF SHIP:STATUS = "PRELAUNCH" {
-    RUN launch_asc(200000). // Launches to 200km
-    WAIT 5.
-    STAGE. // Get rid of the tank
-    wait 5.
-    RUN DEORBITSP.
+@lazyglobal off.
 
+runoncepath("lib_ui").
+
+local OrbitOptions is lexicon(
+	"C","Exit to command line",
+	"1","Rendez-vous with MIR",
+	"2","Rendez-vous with ISS",
+	"X","Return to KSC").
+
+IF ship:status = "PRELAUNCH" {
+	RUN LAUNCH_ASC(200000).
+	BAYS ON.
+	reboot.
 }
 
+ELSE IF ship:status = "ORBITING" {
+	rcs off.
+	local choice is uiTerminalMenu(OrbitOptions).
+	if choice = 1 {
+		SET TARGET TO VESSEL("MIR").
+		RUN RENDEZVOUS.
+	}
+	if choice = 2 {
+		SET TARGET TO VESSEL("ISS").
+		RUN RENDEZVOUS.
+	}
+	else if choice = "X" {
+		run deorbitsp(0).
+	}
+}
