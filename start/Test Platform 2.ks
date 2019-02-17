@@ -1,5 +1,6 @@
 IF SHIP:STATUS = "PRELAUNCH" {
-    RUN launch_asc(200000). 
+    run launch.
+    WAIT 5.
     REBOOT.
 }
 ELSE IF SHIP:STATUS = "ORBITING" {

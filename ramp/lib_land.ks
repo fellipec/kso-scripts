@@ -1,5 +1,5 @@
 FUNCTION landRadarAltimeter {
-    Return ship:altitude - ship:geoposition:terrainheight.
+    Return MIN(ship:altitude - ship:geoposition:terrainheight,ship:altitude).
 }
 
 FUNCTION landTimeToLong {
