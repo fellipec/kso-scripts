@@ -5,7 +5,7 @@ SET STEERINGMANAGER:MAXSTOPPINGTIME TO 3.
 
 local OrbitOptions is lexicon(
 	"C","Exit to command line",
-	"1","Rendez-vous with MIR",
+	"1","Rendez-vous with Skylab",
 	"2","Rendez-vous with ISS",
 	"X","Return to KSC").
 
@@ -18,7 +18,7 @@ ELSE IF ship:status = "ORBITING" {
 	RCS ON.
 	local choice is uiTerminalMenu(OrbitOptions).
 	if choice = 1 {
-		SET TARGET TO VESSEL("MIR").
+		SET TARGET TO VESSEL("Skylab").
 		RUN RENDEZVOUS.
 	}
 	if choice = 2 {

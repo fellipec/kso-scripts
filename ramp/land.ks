@@ -31,7 +31,7 @@ PARAMETER LandLng is ship:geoposition:lng.
 
 
 LOCAL MaxHVel is 1.
-LOCAL FinalBurnHeight is 30.
+LOCAL FinalBurnHeight is 50.
 
 runoncepath("lib_ui").
 runoncepath("lib_util").
@@ -42,7 +42,7 @@ BAYS OFF.
 GEAR OFF.
 LADDERS OFF.
 
-DrawDebugVectors On.
+DrawDebugVectors off.
 
 
 
@@ -131,23 +131,26 @@ if ship:status = "ORBITING" {
     add nd. run node. 
     uiBanner("Deorbit","Deorbit burn done"). 
     wait 5. // Let's have some time to breath and look what's happening 
-}
 
-// Warp to ATM
-SAS OFF.
-SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
-SET KUNIVERSE:TIMEWARP:WARP to 3.
-WAIT UNTIL SHIP:ALTITUDE < BODY:ATM:HEIGHT + 1000.
-KUNIVERSE:TIMEWARP:CANCELWARP().
-WAIT 5.
-SAS ON.
-WAIT 2.
-SET NAVMODE TO "SURFACE".
-SET SASMODE TO "RETROGRADE".
+    // Warp to ATM
+    uiBanner("Deorbit","Time warping until atmosphere"). 
+    SAS OFF.
+    SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
+    SET KUNIVERSE:TIMEWARP:WARP to 3.
+    WAIT UNTIL SHIP:ALTITUDE < BODY:ATM:HEIGHT * 1.1.
+    KUNIVERSE:TIMEWARP:CANCELWARP().
+    WAIT 5.
+    SAS ON.
+    WAIT 2.
+    uiBanner("Deorbit","Going butt first"). 
+    SET NAVMODE TO "SURFACE".
+    WAIT 1.
+    SET SASMODE TO "RETROGRADE".
+    
+}
 
 
 // Try to land
-uiBanner("Suicide burn","Waiting for right time..."). 
 if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     local TouchdownSpeed is 2.
     local BurnStarted is false.
@@ -157,15 +160,6 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     SET ThrottlePID:MAXOUTPUT TO 1.
     SET ThrottlePID:MINOUTPUT TO 0.
     SET ThrottlePID:SETPOINT TO 0. 
-
-    SAS OFF.
-    LIGHTS ON. //We want the Kerbals to see where they are going right?
-    LEGS OFF. 
-
-    IF NOT (Ship:AvailableThrust > 0) {
-        STAGE.
-        WAIT 1.
-    }
 
     //Fuel Burning Time
     DECLARE function AverageISP {
@@ -189,35 +183,54 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         }
     }
 
+    // Math and parameters
     Lock fTime to FuelTime().
-
-
-    // Throttle and Steering
     local g is body:mu / ((body:radius)^2).
     lock ShipVelocity to SHIP:velocity:surface.
     lock ShipWeight to (Ship:Mass * g).
-    lock Acc to (Ship:AvailableThrust - ShipWeight) / Ship:Mass.
-    lock dTime to ShipVelocity:MAG / Acc.
-    lock BurnDist to (ShipVelocity:MAG * dTime) - (0.5*Acc*(dTime^2)).
+    lock accl to (Ship:AvailableThrust - ShipWeight) / Ship:Mass.
+    lock dTime to ShipVelocity:MAG / accl.
+    lock BurnDist to (ShipVelocity:MAG * dTime) - (0.5*accl*(dTime^2)).
     lock BurnAlt to BurnDist + FinalBurnHeight.
-
     local NeedKillHV is False.
 
+    //Check Stages   
+
+    until Ship:AvailableThrust > ShipWeight or stage:number = 0 {
+        uiBanner("Suicide burn","Staging rocket for landing."). 
+        if stage:ready Stage.      
+        wait 1.
+    }
+
+    If stage:number = 0 and Ship:AvailableThrust < ShipWeight {
+        uiBanner("Suicide burn","This ship can't do a propulsive landing. Good luck."). 
+        chutes on.
+        shutdown.
+    }
+
+    Wait Until dTime < fTime. 
+    uiBanner("Suicide burn","Steering and waiting for burn."). 
+
+    SAS OFF.
+    LIGHTS ON. //We want the Kerbals to see where they are going right?
+    LEGS OFF. 
+
+    // Throttle and Steering
     local tVal is 0.
     lock Throttle to tVal.
     local sDir is ship:up.
     lock steering to sDir.
 
-    Wait Until dTime < fTime. 
-    uiBanner("Suicide burn","Burning about " + round(BurnAlt,1) + "km"). 
-
     // Main landing loop
     UNTIL SHIP:STATUS = "LANDED" OR SHIP:STATUS = "SPLASHED" {
 
         WAIT 0.
+        //******************
         // Steer the rocket
+        //******************
         SET ShipVelocity TO SHIP:velocity:surface.
         SET ShipHVelocity to vxcl(SHIP:UP:VECTOR,ShipVelocity).
+
         // Default scenario, try to compensate for horizontal velocity while brake
         SET SteerVector to -ShipVelocity - ShipHVelocity. 
 
@@ -241,16 +254,13 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             // If ship is going upwards, steer prograde. This should not happen usually.
             ELSE IF Ship:Verticalspeed > 0 SET SteerVector to ShipVelocity.
         }
-        if DrawDebugVectors {
-            SET DRAWSV TO VECDRAW(v(0,0,0),SteerVector, red, "Steering", 1, true, 1).
-            SET DRAWV TO VECDRAW(v(0,0,0),ShipVelocity, green, "Velocity", 1, true, 1).
-            SET DRAWHV TO VECDRAW(v(0,0,0),ShipHVelocity, YELLOW, "Horizontal Velocity", 1, true, 1).
-            //SET DRAWTV TO VECDRAW(v(0,0,0),TargetVector, Magenta, "Target", 1, true, 1).
-        }            
+ 
         set sDir TO SteerVector:Direction. 
 
-        // Throttle the rocket       
-        set TargetVSpeed to min(landRadarAltimeter() / TouchdownSpeed,TouchdownSpeed*Acc).
+        //*********************
+        // Throttle the rocket 
+        //*********************      
+        set TargetVSpeed to min(landRadarAltimeter() / TouchdownSpeed,TouchdownSpeed*accl).
         IF Not BurnStarted and landRadarAltimeter() < BurnAlt {
             uiBanner("Suicide burn","Burning!"). 
             BurnStarted On.            
@@ -275,12 +285,14 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             set ship:control:translation to v(0,0,0).
         }
 
-
-
         // Deploy Legs
         IF BurnStarted AND dTime < 5 OR landRadarAltimeter() < FinalBurnHeight LEGS ON.
 
-        if DrawDebugVectors { // I know, isn't the debug vectors but helps
+        if DrawDebugVectors {
+            SET DRAWSV TO VECDRAW(v(0,0,0),SteerVector, red, "Steering", 1, true, 1).
+            SET DRAWV TO VECDRAW(v(0,0,0),ShipVelocity, green, "Velocity", 1, true, 1).
+            SET DRAWHV TO VECDRAW(v(0,0,0),ShipHVelocity, YELLOW, "Horizontal Velocity", 1, true, 1).
+            //SET DRAWTV TO VECDRAW(v(0,0,0),TargetVector, Magenta, "Target", 1, true, 1).
 
             PRINT "Vertical speed " + abs(Ship:VERTICALSPEED) + "                           " at (0,0).
             Print "Target Vspeed  " + TargetVSpeed            + "                           " at (0,1).
@@ -290,12 +302,13 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             print "                                                                         " at (0,5).
             Print "Burn Alt       " + BurnAlt                 + "                           " at (0,6).
             Print "Burn Time      " + dTime                   + "                           " at (0,7).
-            Print "Acc            " + Acc                     + "                           " at (0,8).
+            Print "accl           " + accl                    + "                           " at (0,8).
             Print "Fuel Time      " + FTime                   + "                           " at (0,9).
 
         }
     }
 
+    // Release controls
     UNLOCK THROTTLE. UNLOCK STEERING.
     SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
     SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.

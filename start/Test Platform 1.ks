@@ -1,2 +1,0 @@
-run launch.
-run test.
