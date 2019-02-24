@@ -461,11 +461,11 @@ ON ABORT {
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(0.035,0.010,0.022,-1,1).
+local ElevatorPID is PIDLOOP(0.035,0.012,0.025,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(0.04,0.004,0.010,-30,30). 
+local PitchAnglePID is PIDLOOP(0.06,0.004,0.030,-30,30). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 //PID Aileron  
@@ -619,6 +619,7 @@ until SafeToExit {
                     IF KindOfCraft = "SHUTTLE" { 
                         SET TGTPitch TO -GSAng/4. 
                         SET VNAVMODE TO "PIT".
+                        SET PitchAnglePID:MAXOUTPUT to -5.
                     }
                     ELSE { 
                         SET TGTAltitude TO (BaroAltitude + TGTAltitude) / 2.
@@ -650,7 +651,7 @@ until SafeToExit {
                     else if AirSPD < TGTSpeed 
                             or  ship:control:pilotmainthrottle > 0.4 brakes off. 
                 }
-                ELSE IF KindOfCraft = "Shuttle" {
+                ELSE IF KindOfCraft = "Shuttle" {                    
                     SET TGTSpeed to max(SQRT(TGTAltitude)*10,100).
                     SET ATMODE to "OFF".
                     IF SHUTTLEWITHJETS {
@@ -669,6 +670,7 @@ until SafeToExit {
                     SET VNAVMODE TO "PIT".
                     SET TGTHeading TO 90.
                     PitchAnglePID:RESET.
+                    IF KindOfCraft = "Shuttle" SET PitchAnglePID:MAXOUTPUT to 15.
                     SET ElevatorPID:Kp TO ElevatorPID:Kp*2.2.
                     SET ElevatorPID:Ki to ElevatorPID:Ki*1.2.
                     SET ElevatorPID:Kd to ElevatorPID:Kd*1.5.
