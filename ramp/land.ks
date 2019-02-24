@@ -42,7 +42,7 @@ BAYS OFF.
 GEAR OFF.
 LADDERS OFF.
 
-DrawDebugVectors off.
+DrawDebugVectors on.
 
 
 
@@ -108,8 +108,8 @@ if ship:status = "ORBITING" {
     local phiIncManeuver is (IncTravelTime/ship:body:rotationperiod) * 360.
 
     // Deorbit and plane change longitudes
-    Set Deorbit_Long to utilLongitudeTo360(LandLng - 45).
-    Set PlaneChangeLong to utilLongitudeTo360(LandLng - 135).
+    Set Deorbit_Long to utilLongitudeTo360(LandLng - 60).
+    Set PlaneChangeLong to utilLongitudeTo360(LandLng - 150).
 
     // Plane change for landing site
     local vel is velocityat(ship, landTimeToLong(PlaneChangeLong)):orbit.
@@ -136,17 +136,21 @@ if ship:status = "ORBITING" {
     uiBanner("Deorbit","Time warping until atmosphere"). 
     SAS OFF.
     SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
-    SET KUNIVERSE:TIMEWARP:WARP to 3.
-    WAIT UNTIL SHIP:ALTITUDE < BODY:ATM:HEIGHT * 1.1.
+    SET KUNIVERSE:TIMEWARP:WARP to 2.
+    WAIT UNTIL SHIP:ALTITUDE < BODY:ATM:HEIGHT * 1.2.
     KUNIVERSE:TIMEWARP:CANCELWARP().
-    WAIT 5.
-    SAS ON.
-    WAIT 2.
+    wait until kuniverse:timewarp:issettled.
     uiBanner("Deorbit","Going butt first"). 
-    SET NAVMODE TO "SURFACE".
-    WAIT 1.
+    SAS ON.    
+    WAIT 3.    
     SET SASMODE TO "RETROGRADE".
-    
+    WAIT 2.
+    SET NAVMODE TO "SURFACE".
+    WAIT 2.
+    uiBanner("Deorbit","Retrograde"). 
+    PANELS OFF.
+    RADIATORS OFF.
+    LEGS OFF.
 }
 
 
@@ -205,10 +209,15 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     If stage:number = 0 and Ship:AvailableThrust < ShipWeight {
         uiBanner("Suicide burn","This ship can't do a propulsive landing. Good luck."). 
         chutes on.
-        shutdown.
+        wait until chutes and landRadarAltimeter() < 1000.
     }
 
-    Wait Until dTime < fTime. 
+    Until dTime < fTime {
+        if DrawDebugVectors {
+            PRINT "Needed burn time     " + dTime + "                           " at (0,0).
+            Print "Available burn time  " + fTime + "                           " at (0,1).
+        }
+    }
     uiBanner("Suicide burn","Steering and waiting for burn."). 
 
     SAS OFF.
@@ -234,13 +243,16 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         // Default scenario, try to compensate for horizontal velocity while brake
         SET SteerVector to -ShipVelocity - ShipHVelocity. 
 
-        If NeedKillHV { // Take care of excessive horizontal velocity
+        If NeedKillHV and landRadarAltimeter() > FinalBurnHeight { // Take care of excessive horizontal velocity
             SET SteerVector to - ShipHVelocity. 
             IF ShipHVelocity:MAG < MaxHVel OR ShipHVelocity:MAG < ShipVelocity:MAG * 0.4 NeedKillHV Off.
         }
         Else {
             // If the horizontal velocity is low enough, just compensate for ship velocity.
-            IF ShipHVelocity:MAG < MaxHVel SET SteerVector to -ShipVelocity.
+            IF ShipHVelocity:MAG < MaxHVel {
+                SET SteerVector to -ShipVelocity.
+                NeedKillHV Off.
+            }
 
             // Near touchdown make sure the ship is pointed straight up.
             ELSE IF landRadarAltimeter() <  FinalBurnHeight SET SteerVector to SHIP:UP:VECTOR.
@@ -285,13 +297,19 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             set ship:control:translation to v(0,0,0).
         }
 
+        // Check for fuel
+        if BurnStarted and fTime < 1 {
+            chutes on.
+        }
+
+
         // Deploy Legs
         IF BurnStarted AND dTime < 5 OR landRadarAltimeter() < FinalBurnHeight LEGS ON.
 
         if DrawDebugVectors {
-            SET DRAWSV TO VECDRAW(v(0,0,0),SteerVector, red, "Steering", 1, true, 1).
-            SET DRAWV TO VECDRAW(v(0,0,0),ShipVelocity, green, "Velocity", 1, true, 1).
-            SET DRAWHV TO VECDRAW(v(0,0,0),ShipHVelocity, YELLOW, "Horizontal Velocity", 1, true, 1).
+            SET DRAWSV TO VECDRAW(v(0,0,0),SteerVector, red, "", 1, true, 1). // Steering
+            SET DRAWV TO VECDRAW(v(0,0,0),ShipVelocity, green, "", 1, true, 1). // Velocity
+            SET DRAWHV TO VECDRAW(v(0,0,0),ShipHVelocity, YELLOW, "", 1, true, 1). //Horizontal Velocity
             //SET DRAWTV TO VECDRAW(v(0,0,0),TargetVector, Magenta, "Target", 1, true, 1).
 
             PRINT "Vertical speed " + abs(Ship:VERTICALSPEED) + "                           " at (0,0).

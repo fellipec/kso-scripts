@@ -10,8 +10,8 @@ local OrbitOptions is lexicon(
 
 IF ship:status = "PRELAUNCH" {
 	RUN LAUNCH_ASC(200000).
-    IF STAGE:NUMBER > 1 STAGE. // Discard the tank
-	BAYS ON.
+    LIGHTS ON.
+    STAGE.
 	reboot.
 }
 
@@ -27,6 +27,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(0).
+		run deorbitsp(-8).
 	}
 }
