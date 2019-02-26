@@ -12,7 +12,8 @@ local OrbitOptions is lexicon(
 	"C","Exit to command line",
 	"1","Rendez-vous with Skylab",
 	"2","Rendez-vous with ISS",
-	"X","Return to KSC").
+	"X","Return to KSC",
+	"R","Reboot").
 
 IF ship:status = "PRELAUNCH" {
 	RUN LAUNCH_ASC(200000).
@@ -30,11 +31,14 @@ ELSE IF ship:status = "ORBITING" {
 		SET TARGET TO VESSEL("Skylab").
 		RUN RENDEZVOUS.
 	}
-	if choice = 2 {
+	else if choice = 2 {
 		SET TARGET TO VESSEL("ISS").
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(2).
+		run deorbitsp(0,25).
+	}
+	else if choice = "R" {
+		REBOOT.
 	}
 }

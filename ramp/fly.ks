@@ -5,6 +5,7 @@
 
 PARAMETER KindOfCraft IS "Plane". // KindOfCraft valid values are "Plane" and "Shuttle". This changes the way the craft lands.
 PARAMETER LandingGear IS "Tricycle". // LandingGear valid values are "Tricycle" or "Taildragger". This changes how to handle the plane after touchdown. 
+PARAMETER ShuttleGS is 20. // Default ILS Glideslope angle
 
 runoncepath("lib_ui").
 runoncepath("lib_parts").
@@ -146,6 +147,29 @@ FUNCTION TakeOff {
     wait until ship:altitude > LandedAlt + 600.
     set ship:control:pilotmainthrottle to 0.
 }
+
+local VerticalGTime0 is time:seconds.
+local VerticalGSpeed0 is SHIP:VerticalSpeed.
+FUNCTION FuncVerticalG {
+    local DeltaT is time:seconds - VerticalGTime0.
+    local DeltaV is SHIP:VerticalSpeed - VerticalGSpeed0.
+    set VerticalGTime0 to time:seconds.
+    set VerticalGSpeed0 to SHIP:VerticalSpeed.
+    IF DeltaT = 0 {
+        return 0.
+    }
+    else{
+        return DeltaV/DeltaT.
+    }
+}
+
+
+
+
+
+
+
+
 
 ////////////////////
 // Graphic Interface
@@ -455,6 +479,13 @@ ON ABORT {
     PRESERVE.
 }
 
+
+
+
+
+
+
+
 // ////////////////
 // SET UP PID LOOPS
 // ////////////////
@@ -517,6 +548,8 @@ local HasTermometer is partsHasTermometer().
 local ILSHOLDALT is 0.
 local LNAVMODE is "HDG".
 local MaxAoA is 20.
+local MaxGAllowed is 2.5.
+local MaxGProt is False.
 local PREVIOUSAP is "".
 local PREVIOUSAT is "".
 local PREVIOUSLNAV is "".
@@ -540,16 +573,22 @@ IF KindOfCraft = "Shuttle" {
     SET APMODE TO "ILS".
     SET TGTAltitude to 6000.
     SET TGTHeading to MagHeading().
-    SET GSAng to 20.
+    SET GSAng to ShuttleGS.
     SET TGTRunway TO RWYKSC_SHUTTLE.
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
     SET FLAREALT TO 300.
-    SET PitchAnglePID:MinOutput to -40.
-    SET PitchAnglePID:KD to 0.02.
+    SET PitchAnglePID:MinOutput to -ShuttleGS - 10.
+    SET PitchAnglePID:KP to 0.080.
+    SET PitchAnglePID:KI to 0.001.
+    SET PitchAnglePID:KD to 0.040.
     SET ElevatorPID:KP TO 0.035. 
-    SET ElevatorPID:KI TO 0.020. 
-    SET ElevatorPID:KD TO 0.015. 
+    SET ElevatorPID:KI TO 0.015. 
+    SET ElevatorPID:KD TO 0.020. 
+    SET AileronPID:KP TO 0.005.
+    SET AileronPID:KI TO 0.001.
+    SET AileronPID:KD TO 0.019.
+    SET BankAnglePID:KP to 1.
 
     LIST Resources IN ShipResources.
     ShuttleWithJets OFF.
@@ -585,6 +624,7 @@ local AirSPD is ship:airspeed.
 local TimeNow is Time:seconds.
 local BaroAltitude is ship:altitude.
 local SafeToExit is false.
+local VerticalG is FuncVerticalG().
 
 until SafeToExit {
 
@@ -603,6 +643,7 @@ until SafeToExit {
         set TimeNow to Time:seconds.
         set BaroAltitude to ship:altitude.
         set RA to RadarAltimeter().
+        set VerticalG to FuncVerticalG().
 
         IF APATEnabled {
             IF SAS { SAS OFF. }
@@ -788,19 +829,45 @@ until SafeToExit {
                 }
             }
 
+            // RCS/Aerosurfaces authority transition and limit
             IF KindOfCraft = "SHUTTLE" {
-                SET CTRLIMIT TO min(1,ROUND(300/AirSPD,2)).
+                SET CTRLIMIT TO min(1,ROUND(340/AirSPD,2)).
                 SET RCS TO BaroAltitude > 15000.
             }
             ELSE {
                 SET CTRLIMIT TO min(1,ROUND(120/AirSPD,2)).
             }
 
-            // Ease controls in high speeds
-            IF ElevatorPID:MAXOUTPUT <> MIN(1,CTRLIMIT * 1.5) .{
-                SET ElevatorPID:MAXOUTPUT TO MIN(1,CTRLIMIT * 1.5) .
-                SET ElevatorPID:MINOUTPUT TO MAX (-1,-CTRLIMIT * 1.5) .
+            //Max G detection
+            IF abs(VerticalG) > CONSTANT:G0*MaxGAllowed MaxGProt On.
+
+
+            // Ease pitch controls in high speeds or G loads
+            IF ElevatorPID:MAXOUTPUT <> MIN(1,CTRLIMIT * 1.5) OR MaxGProt {
+                IF MaxGProt and abs(VerticalG) > CONSTANT:G0*MaxGAllowed { 
+                    // MaxG detected once and G still too high, limit elevator to 99.5% of previous range but limit that to 20% of actuation
+                    SET ElevatorPID:MAXOUTPUT TO MAX(MIN(1,ElevatorPID:MAXOUTPUT * 0.995),0.2).
+                    SET ElevatorPID:MINOUTPUT TO MIN(MAX(-1,ElevatorPID:MINOUTPUT * 0.995),-0.2).
+                    uiDebug("MaxG Exceeded").
+                }
+                ELSE IF MaxGProt and abs(VerticalG) < CONSTANT:G0*MaxGAllowed {
+                    // MaxG detected once and G is now in limits, increase elevator range in 0.5%
+                    IF MIN(1,CTRLIMIT * 1.5) > ElevatorPID:MAXOUTPUT * 1.005 {
+                        SET ElevatorPID:MAXOUTPUT TO MIN(1,ElevatorPID:MAXOUTPUT * 1.005).
+                        SET ElevatorPID:MINOUTPUT TO MAX(-1,ElevatorPID:MINOUTPUT * 1.005).
+                    }
+                    ELSE {
+                        MaxGProt Off. 
+                        uiDebug("MaxG Off").
+                    }                   
+                }                
+                ELSE {
+                    SET ElevatorPID:MAXOUTPUT TO MIN(1,CTRLIMIT * 1.7) .
+                    SET ElevatorPID:MINOUTPUT TO MAX (-1,-CTRLIMIT * 1.7) .
+                }
             }
+
+            // Ease aileron controls in high speeds
             IF AileronPID:MAXOUTPUT <> CTRLIMIT. {
                 SET AileronPID:MAXOUTPUT TO CTRLIMIT.
                 SET AileronPID:MINOUTPUT TO -CTRLIMIT.

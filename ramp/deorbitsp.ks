@@ -1,4 +1,5 @@
 PARAMETER DeorbitLongOffset IS 0. // Diference from the default deorbit longitude.
+PARAMETER Slope is 20.
 
 runoncepath("lib_ui").
 runoncepath("lib_parts").
@@ -29,7 +30,27 @@ FUNCTION TimeToLong {
     }
 }
 
-SET Deorbit_Long TO -149.8 + DeorbitLongOffset.
+FUNCTION deorbitspGroundDistance {
+    // Returns distance to a point in ground from the ship's ground position (ignores altitude)
+    PARAMETER TgtPos.
+    RETURN vxcl(up:vector, TgtPos:Position):mag.
+}
+
+
+FUNCTION deorbitspGlideslope{
+    //Returns the altitude of the glideslope
+    PARAMETER GSAngle IS 20.
+    PARAMETER Threshold IS latlng(-0.04807,-74.82).
+    PARAMETER Offset is -2000. // So we move to fly program under the slope
+    LOCAL KerbinAngle is abs(ship:geoposition:lng) - abs(Threshold:lng).
+    LOCAL Correction IS SQRT( (KERBIN:RADIUS^2) + (TAN(KerbinAngle)*KERBIN:RADIUS)^2 ) - KERBIN:Radius. // Why this correction? https://imgur.com/a/CPHnD
+    RETURN (tan(GSAngle) * deorbitspGroundDistance(Threshold)) + Threshold:terrainheight + Correction + Offset.
+}
+
+
+
+//SET Deorbit_Long TO -149.8 + DeorbitLongOffset.
+SET Deorbit_Long TO -146.8 + DeorbitLongOffset.
 SET Deorbit_dV TO -110. 
 SET Deorbit_Inc to 0.
 SET Deorbit_Alt to 80000.
@@ -86,12 +107,12 @@ SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
 SET KUNIVERSE:TIMEWARP:WARP to 2.
 WAIT UNTIL SHIP:ALTITUDE < 71000.
 KUNIVERSE:TIMEWARP:CANCELWARP().
-WAIT UNTIL SHIP:ALTITUDE < 35000.
-uiBanner("Deorbit","Holding -3º Pitch until 30000m").
+WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope).
+uiBanner("Deorbit","Preparing for landing..").
 LOCK STEERING TO HEADING(90,-3).
-WAIT UNTIL SHIP:ALTITUDE < 30000.
+WAIT 5.
 uiBanner("Deorbit","Preparing atmospheric autopilot...").
 UNLOCK THROTTLE.
 UNLOCK STEERING.
 SAS ON.
-run fly("SHUTTLE").
+run fly("SHUTTLE","Tricycle",Slope).
