@@ -86,6 +86,8 @@ UNLOCK STEERING. UNLOCK THROTTLE. WAIT 5.
 // Add Deorbit maneuver node.
 uiBanner("Deorbit","Doing the deorbit burn").
 LOCAL nd IS NODE(time:seconds + TimeToLong(Deorbit_Long), 0, 0, Deorbit_dV).
+WAIT UNTIL KUniverse:CANQUICKSAVE.
+KUniverse:QUICKSAVETO("Before Reenter").
 ADD nd. RUN NODE.
 
 // Configure the ship to reenter.

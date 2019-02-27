@@ -584,10 +584,10 @@ IF KindOfCraft = "Shuttle" {
     SET PitchAnglePID:KD to 0.040.
     SET ElevatorPID:KP TO 0.035. 
     SET ElevatorPID:KI TO 0.015. 
-    SET ElevatorPID:KD TO 0.020. 
-    SET AileronPID:KP TO 0.005.
-    SET AileronPID:KI TO 0.001.
-    SET AileronPID:KD TO 0.019.
+    SET ElevatorPID:KD TO 0.030. 
+    SET AileronPID:KP TO 0.0040.
+    SET AileronPID:KI TO 0.0015.
+    SET AileronPID:KD TO 0.0250.
     SET BankAnglePID:KP to 1.
 
     LIST Resources IN ShipResources.
