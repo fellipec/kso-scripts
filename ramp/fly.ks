@@ -14,7 +14,7 @@ CLEARVECDRAWS().
 CLEARGUIS().
 
 local OldIPU is Config:IPU.
-if OldIPU < 500 set Config:IPU to 500. 
+if OldIPU < 300 set Config:IPU to 300. 
 
 Local CONSOLEINFO is FALSE.
 uiDebug("CONSOLE OUTPUT IS " + CONSOLEINFO).
@@ -130,22 +130,38 @@ FUNCTION CenterLineDistance {
     }
 }
 
+FUNCTION PlaneWeight {
+    local g is body:mu / ((body:radius)^2).
+    return (Ship:Mass * g).
+}
+
+Function PitchLimit {
+    local ShipWeight is PlaneWeight().
+    if Ship:AvailableThrust > ShipWeight return 45.
+    uiDebug("TWR: " + Round((Ship:AvailableThrust / ShipWeight),2) ).
+    return Ship:AvailableThrust / ShipWeight * 30.
+}
+
+
 FUNCTION TakeOff {
     local LandedAlt is ship:altitude.
     sas off.
     brakes off.
     lights on.
     stage.
-    set ship:control:pilotmainthrottle to 1.
+    lock throttle to 1.
+    LOCK STEERING TO HEADING(MagHeading(), 0).
     wait until ship:airspeed > 50.
-    set ship:control:pitch to 0.5.
+    LOCK STEERING TO HEADING(MagHeading(), PitchLimit()).
     wait until ship:altitude > LandedAlt + 50.
-    set ship:control:pitch to 0.
-    sas on.
     gear off.
     lights off.
-    wait until ship:altitude > LandedAlt + 600.
-    set ship:control:pilotmainthrottle to 0.
+    wait until ship:altitude > LandedAlt + 50.
+    unlock steering.
+    wait 0.
+    sas on.
+    wait until ship:altitude > LandedAlt + 500.
+    unlock throttle.
 }
 
 local VerticalGTime0 is time:seconds.
@@ -492,11 +508,11 @@ ON ABORT {
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(0.035,0.012,0.029,-1,1).
+local ElevatorPID is PIDLOOP(0.020,0.010,0.020,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(0.06,0.004,0.030,-30,30). 
+local PitchAnglePID is PIDLOOP(0.06,0.010,0.020,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 //PID Aileron  
@@ -600,6 +616,8 @@ IF KindOfCraft = "Shuttle" {
     uiChime().
 }
 ELSE IF KindOfCraft = "Plane" {
+    SET PitchAnglePID:MaxOutput to PitchLimit().
+    SET PitchAnglePID:MinOutput to -PitchLimit().    
     if ship:altitude < 1000 set TGTAltitude to 1000.
     else SET TGTAltitude to SHIP:Altitude.
     SET TGTHeading to MagHeading().
@@ -675,7 +693,7 @@ until SafeToExit {
 
                 //Checks distance from centerline
                 local GDist to GroundDistance(TargetCoord).
-                local AllowedDeviation is GDist * sin(0.5).
+                local AllowedDeviation is GDist * sin(0.3).
                 SET CLDist TO CenterLineDistance(TGTRunway).
                 IF ABS(CLDist) < AllowedDeviation SET TGTHeading TO 90.
                 ELSE IF abs(CLDist) < GDist/3 SET TGTHeading TO ABS(90 + arcsin(CLDist/(GDist/3))).
@@ -721,7 +739,7 @@ until SafeToExit {
 
                 }           
                 // Adjust craft flight
-                IF RA > 20 {
+                IF RA > 30 {
                     SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 10).
                     //SET PitchAnglePID:KP to PitchAnglePID:KP * 1.2.
                     IF AirSPD > 80 {
@@ -732,7 +750,8 @@ until SafeToExit {
                     }
                 }
                 ELSE {
-                    SET TGTPitch TO 5.
+                    //SET TGTPitch TO 2.
+                    SET TGTPitch to MAX(0,MIN(5,PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 1))).
                     IF BRAKES {BRAKES OFF.}
                     SET LNAVMODE TO "BNK".
                     SET TGTBank TO 0.
@@ -842,7 +861,7 @@ until SafeToExit {
                 SET RCS TO BaroAltitude > 15000.
             }
             ELSE {
-                SET CTRLIMIT TO min(1,ROUND(120/AirSPD,2)).
+                SET CTRLIMIT TO min(1,ROUND(250/AirSPD,2)).
             }
 
             //Max G detection
