@@ -87,7 +87,7 @@ UNLOCK STEERING. UNLOCK THROTTLE. WAIT 5.
 uiBanner("Deorbit","Doing the deorbit burn").
 LOCAL nd IS NODE(time:seconds + TimeToLong(Deorbit_Long), 0, 0, Deorbit_dV).
 WAIT UNTIL KUniverse:CANQUICKSAVE.
-KUniverse:QUICKSAVETO("Before Reenter").
+KUniverse:QUICKSAVETO("RAMP-Before Reenter").
 ADD nd. RUN NODE.
 
 // Configure the ship to reenter.
@@ -102,7 +102,7 @@ partsRetractAntennas().
 partsRetractRadiators().
 
 LOCK THROTTLE TO 0.
-uiBanner("Deorbit","Holding 40º Pitch until 35000m").
+uiBanner("Deorbit","Holding 40º Pitch until ready for atmospheric flight").
 LOCK STEERING TO HEADING(90,40).
 WAIT Until utilIsShipFacing(HEADING(90,40):Vector).
 SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
@@ -110,10 +110,10 @@ SET KUNIVERSE:TIMEWARP:WARP to 2.
 WAIT UNTIL SHIP:ALTITUDE < 71000.
 KUNIVERSE:TIMEWARP:CANCELWARP().
 WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope).
-uiBanner("Deorbit","Preparing for landing..").
+uiBanner("Deorbit","Preparing for atmospheric flight...").
 LOCK STEERING TO HEADING(90,-3).
 WAIT 5.
-uiBanner("Deorbit","Preparing atmospheric autopilot...").
+uiBanner("Deorbit","Activating atmospheric autopilot...").
 UNLOCK THROTTLE.
 UNLOCK STEERING.
 SAS ON.

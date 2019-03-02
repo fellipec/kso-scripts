@@ -492,7 +492,7 @@ ON ABORT {
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(0.035,0.012,0.025,-1,1).
+local ElevatorPID is PIDLOOP(0.035,0.012,0.029,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID Pitch Angle
@@ -504,7 +504,7 @@ local AileronPID is PIDLOOP(0.004,0.001,0.008,-1,1).
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
-local YawDamperPID is PIDLOOP(0.020,0.006,0.008,-1,1). 
+local YawDamperPID is PIDLOOP(0.015,0.001,0.018,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -550,6 +550,7 @@ local LNAVMODE is "HDG".
 local MaxAoA is 20.
 local MaxGAllowed is 2.5.
 local MaxGProt is False.
+local PitchingDown is 1.
 local PREVIOUSAP is "".
 local PREVIOUSAT is "".
 local PREVIOUSLNAV is "".
@@ -578,16 +579,16 @@ IF KindOfCraft = "Shuttle" {
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
     SET FLAREALT TO 300.
-    SET PitchAnglePID:MinOutput to -ShuttleGS - 10.
+    SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
     SET PitchAnglePID:KP to 0.080.
     SET PitchAnglePID:KI to 0.001.
     SET PitchAnglePID:KD to 0.040.
     SET ElevatorPID:KP TO 0.035. 
     SET ElevatorPID:KI TO 0.015. 
     SET ElevatorPID:KD TO 0.030. 
-    SET AileronPID:KP TO 0.0040.
+    SET AileronPID:KP TO 0.0050.
     SET AileronPID:KI TO 0.0015.
-    SET AileronPID:KD TO 0.0250.
+    SET AileronPID:KD TO 0.0200.
     SET BankAnglePID:KP to 1.
 
     LIST Resources IN ShipResources.
@@ -768,21 +769,9 @@ until SafeToExit {
             // COMMON AUTOPILOT CODE
             // *********************
 
-            // DEAL WITH LNAV
+            
             IF APMODE <> "OFF" {
-                IF LNAVMODE = "TGT" {
-                    SET dHeading TO -TargetCoord:bearing.
-                    SET AileronPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
-                }
-                ELSE IF LNAVMODE = "HDG" {
-                    SET dHeading TO -DeltaHeading(TGTHeading).
-                    SET AileronPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
-                }
-                ELSE IF LNAVMODE = "BNK" {
-                    SET AileronPID:SETPOINT TO min(45,max(-45,TGTBank)).
-                }
 
-                SET Aileron TO AileronPID:UPDATE(TimeNow, BankAngle()).
 
                 // DEAL WITH VNAV
 
@@ -797,6 +786,24 @@ until SafeToExit {
                     SET ElevatorPID:SETPOINT to ProgradePitchAngle().
                 }
                 SET Elevator TO ElevatorPID:UPDATE(TimeNow, PitchAngle() ).
+                
+                // DEAL WITH LNAV
+
+                IF LNAVMODE = "TGT" {
+                    SET dHeading TO -TargetCoord:bearing.
+                    SET AileronPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
+                }
+                ELSE IF LNAVMODE = "HDG" {
+                    SET dHeading TO -DeltaHeading(TGTHeading).
+                    SET AileronPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
+                }
+                ELSE IF LNAVMODE = "BNK" {
+                    SET AileronPID:SETPOINT TO min(45,max(-45,TGTBank)).
+                }
+
+
+                SET Aileron TO AileronPID:UPDATE(TimeNow, BankAngle()).
+
 
                 // RESET TRIM
                 SET SHIP:CONTROL:ROLLTRIM TO 0.
@@ -874,9 +881,9 @@ until SafeToExit {
             }
 
             // Yaw Damper
-            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT * 0.75 .{
-                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT * 0.75.
-                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT * 0.75.
+            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT * 0.5 .{
+                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT * 0.5.
+                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT * 0.5.
             }
             SET Rudder TO YawDamperPID:UPDATE(TimeNow, YawError()).
             SET SHIP:CONTROL:YAW TO Rudder.

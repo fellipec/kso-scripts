@@ -27,6 +27,6 @@ ELSE IF ship:status = "ORBITING" {
 	}
 	else if choice = "X" {
 		STAGE. // Activate jet engines before reentry
-		run deorbitsp(-2).
+		run deorbitsp(-6,10).
 	}
 }

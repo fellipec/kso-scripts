@@ -58,6 +58,9 @@ FUNCTION utilFaceBurn {
 
   LOCAL OSS IS LEXICON(). // Used to store all persistent data
   LOCAL trueacc IS 0. // Used to store ship acceleration vector
+  local g is 0.
+  local gVec is 0.
+  local accVec is 0.
 
   FUNCTION HasSensors { 
     // Checks if ship have required sensors:
@@ -72,6 +75,25 @@ FUNCTION utilFaceBurn {
     }
     IF HasA AND HasG { RETURN TRUE. }
     ELSE { RETURN FALSE. }
+  }
+
+  FUNCTION EngineFacing {
+    LOCAL LEngines IS 0.
+    LIST ENGINES IN LEngines.
+    FOR eng IN LEngines {
+      if eng:ignition and not eng:flameout{
+        return eng:facing:vector.
+      }
+    }
+  }
+  FUNCTION EnginePos {
+    LOCAL LEngines IS 0.
+    LIST ENGINES IN LEngines.
+    FOR eng IN LEngines {
+      if eng:ignition and not eng:flameout{
+        return eng:position.
+      }
+    }
   }
 
   FUNCTION InitOSS {
@@ -93,7 +115,7 @@ FUNCTION utilFaceBurn {
 
   IF EXISTS("oss.json") { // Looks for saved data
     SET OSS TO READJSON("oss.json"). 
-    IF OSS["Ship_Name"] <> SHIP:NAME:TOSTRING {
+    IF OSS["Ship_Name"] <> SHIP:NAME:TOSTRING OR time:seconds > OSS["t0"] + 120 {
       SET OSS TO InitOSS(). 
     }
   }
@@ -146,6 +168,12 @@ FUNCTION utilFaceBurn {
           IF VDOT(FACING:STARVECTOR,yaw_error_vec) < 0{
             SET yaw_error_ang TO -yaw_error_ang.
           }
+
+          //Correct for ACC sensor bug
+          IF VANG(FACING:VECTOR,trueacc) < VANG(-EnginePos,trueacc) {
+            // uidebug("Fixing bug").
+            SET pitch_error_ang TO -pitch_error_ang.
+          }
           //LOG "P: " + pitch_error_ang TO "0:/oss.txt".
           //LOG "Y: " + yaw_error_ang TO "0:/oss.txt".
           set OSS["pitch_sum"] to OSS["pitch_sum"] + pitch_error_ang.
@@ -162,6 +190,12 @@ FUNCTION utilFaceBurn {
         SET NEWDIRTOSTEER TO ANGLEAXIS(OSS["yaw_angle"],SHIP:FACING:UPVECTOR) * NEWDIRTOSTEER.
       }
   } 
+
+  // uidebug("Pitch Error:" + (-OSS["pitch_angle"])).
+  // SET DRAWSV TO VECDRAW(v(0,0,0),trueacc:normalized*100, red, "", 1, true, 1). // Steering
+  // SET DRAWV TO VECDRAW(v(0,0,0),ship:sensors:acc:normalized*100, green, "", 1, true, 1). // Velocity
+  // SET DRAWHV TO VECDRAW(v(0,0,0),-EnginePos():normalized*100, YELLOW, "", 1, true, 1). //Horizontal Velocity
+
   // This function is pretty processor intensive, make sure it don't execute too much often.
   WAIT 0.2.
   // Saves the persistent values to a file.
