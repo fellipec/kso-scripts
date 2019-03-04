@@ -143,10 +143,11 @@ if ship:status = "ORBITING" {
     uiBanner("Deorbit","Going butt first"). 
     SAS ON.    
     WAIT 3.    
+    SET NAVMODE TO "ORBIT".
+    WAIT 2.
     SET SASMODE TO "RETROGRADE".
-    WAIT 2.
+    WAIT 1.
     SET NAVMODE TO "SURFACE".
-    WAIT 2.
     uiBanner("Deorbit","Retrograde"). 
     PANELS OFF.
     RADIATORS OFF.

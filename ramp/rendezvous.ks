@@ -55,6 +55,14 @@ wait until target:position:mag < 150.
 
 run match.
 
+uiBanner("Rendezvous", "15 seconds to choose docking ports before default selection...",2).
+local i is 15.
+until i = 0 {
+  uiDebug(i + "...").
+  wait 1.
+  set i to i - 1.
+}
+
 //Save before dock!
 wait until KUniverse:CanQuickSave().
 KUniverse:QuickSaveTo("RAMP-Before docking").

@@ -144,15 +144,17 @@ Function PitchLimit {
 
 
 FUNCTION TakeOff {
+    
     local LandedAlt is ship:altitude.
     sas off.
     brakes off.
     lights on.
     stage.
     lock throttle to 1.
+    local P is PitchLimit().
     LOCK STEERING TO HEADING(MagHeading(), 0).
     wait until ship:airspeed > 50.
-    LOCK STEERING TO HEADING(MagHeading(), PitchLimit()).
+    LOCK STEERING TO HEADING(MagHeading(), P).
     wait until ship:altitude > LandedAlt + 50.
     gear off.
     lights off.
@@ -520,7 +522,7 @@ local AileronPID is PIDLOOP(0.004,0.001,0.008,-1,1).
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
-local YawDamperPID is PIDLOOP(0.015,0.001,0.018,-1,1). 
+local YawDamperPID is PIDLOOP(0.015,0.005,0.018,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -599,13 +601,13 @@ IF KindOfCraft = "Shuttle" {
     SET PitchAnglePID:KP to 0.080.
     SET PitchAnglePID:KI to 0.001.
     SET PitchAnglePID:KD to 0.040.
-    SET ElevatorPID:KP TO 0.035. 
-    SET ElevatorPID:KI TO 0.015. 
+    SET ElevatorPID:KP TO 0.030. 
+    SET ElevatorPID:KI TO 0.010. 
     SET ElevatorPID:KD TO 0.030. 
     SET AileronPID:KP TO 0.0050.
     SET AileronPID:KI TO 0.0015.
-    SET AileronPID:KD TO 0.0200.
-    SET BankAnglePID:KP to 1.
+    SET AileronPID:KD TO 0.0100.
+    SET BankAnglePID:KP to 1.8.
 
     LIST Resources IN ShipResources.
     ShuttleWithJets OFF.

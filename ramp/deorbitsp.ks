@@ -109,7 +109,7 @@ SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
 SET KUNIVERSE:TIMEWARP:WARP to 2.
 WAIT UNTIL SHIP:ALTITUDE < 71000.
 KUNIVERSE:TIMEWARP:CANCELWARP().
-WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope).
+WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope) OR ship:airspeed < 340.
 uiBanner("Deorbit","Preparing for atmospheric flight...").
 LOCK STEERING TO HEADING(90,-3).
 WAIT 5.

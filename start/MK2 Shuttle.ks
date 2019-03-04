@@ -9,13 +9,12 @@ local OrbitOptions is lexicon(
 	"X","Return to KSC").
 
 IF ship:status = "PRELAUNCH" {
-	RUN LAUNCH_ASC(200000).
-	STAGE.
+	RUN LAUNCH(100000).
 	reboot.
 }
 
 ELSE IF ship:status = "ORBITING" {
-	IF STAGE:NUMBER > 0 STAGE.
+	IF STAGE:NUMBER > 1 STAGE.
 	rcs off.
 	local choice is uiTerminalMenu(OrbitOptions).
 	if choice = 1 {
@@ -27,6 +26,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-2.5,20).
+		run deorbitsp(-5,15).
 	}
 }
