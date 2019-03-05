@@ -161,7 +161,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     local BurnStarted is false.
 
     //PID Throttle
-    SET ThrottlePID to PIDLOOP(0.06,0.03,0.02). // Kp, Ki, Kd
+    SET ThrottlePID to PIDLOOP(0.05,0.05,0.03). // Kp, Ki, Kd
     SET ThrottlePID:MAXOUTPUT TO 1.
     SET ThrottlePID:MINOUTPUT TO 0.
     SET ThrottlePID:SETPOINT TO 0. 
@@ -180,8 +180,8 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
 
     DECLARE function FuelTime {
         Local FuelMass IS SHIP:MASS - SHIP:DRYMASS.
-        If FuelMass > 0 and Ship:AvailableThrust > 0 {
-            return FuelMass / (Ship:AvailableThrust / (AverageISP() * Constant:g0)).
+        If FuelMass > 0 and Ship:AvailableThrustat(1) > 0 {
+            return FuelMass / (Ship:AvailableThrustat(1) / (AverageISP() * Constant:g0)).
         }
         Else {
             Return 0.
@@ -193,7 +193,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     local g is body:mu / ((body:radius)^2).
     lock ShipVelocity to SHIP:velocity:surface.
     lock ShipWeight to (Ship:Mass * g).
-    lock accl to (Ship:AvailableThrust - ShipWeight) / Ship:Mass.
+    lock accl to (Ship:AvailableThrustat(1) - ShipWeight) / Ship:Mass.
     lock dTime to ShipVelocity:MAG / accl.
     lock BurnDist to (ShipVelocity:MAG * dTime) - (0.5*accl*(dTime^2)).
     lock BurnAlt to BurnDist + FinalBurnHeight.
@@ -201,13 +201,13 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
 
     //Check Stages   
 
-    until Ship:AvailableThrust > ShipWeight or stage:number = 0 {
+    until Ship:AvailableThrustat(1) > ShipWeight or stage:number = 0 {
         uiBanner("Suicide burn","Staging rocket for landing."). 
         if stage:ready Stage.      
         wait 1.
     }
 
-    If stage:number = 0 and Ship:AvailableThrust < ShipWeight {
+    If stage:number = 0 and Ship:AvailableThrustat(1) < ShipWeight {
         uiBanner("Suicide burn","This ship can't do a propulsive landing. Good luck."). 
         chutes on.
         wait until chutes and landRadarAltimeter() < 1000.
@@ -244,8 +244,8 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         // Default scenario, try to compensate for horizontal velocity while brake
         SET SteerVector to -ShipVelocity - ShipHVelocity. 
 
-        If NeedKillHV and landRadarAltimeter() > FinalBurnHeight { // Take care of excessive horizontal velocity
-            SET SteerVector to - ShipHVelocity. 
+        If NeedKillHV and landRadarAltimeter() > FinalBurnHeight*2 { // Take care of excessive horizontal velocity
+            SET SteerVector to -ShipHVelocity. 
             IF ShipHVelocity:MAG < MaxHVel OR ShipHVelocity:MAG < ShipVelocity:MAG * 0.4 NeedKillHV Off.
         }
         Else {
@@ -254,13 +254,13 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
                 SET SteerVector to -ShipVelocity.
                 NeedKillHV Off.
             }
-
             // Near touchdown make sure the ship is pointed straight up.
-            ELSE IF landRadarAltimeter() <  FinalBurnHeight SET SteerVector to SHIP:UP:VECTOR.
-
+            ELSE IF landRadarAltimeter() <  FinalBurnHeight*2 {
+                SET SteerVector to SHIP:UP:VECTOR.
+            }
             // When the horizontal velocity is the major part of ship velocity, try to kill it first
-            ELSE IF ShipHVelocity:MAG > ShipVelocity:MAG * 0.5 {
-                SET SteerVector to - ShipHVelocity. 
+            ELSE IF ShipHVelocity:MAG > ShipVelocity:MAG * 0.6 {
+                SET SteerVector to -ShipHVelocity. 
                 NeedKillHV On.
             }
 
@@ -272,8 +272,15 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
 
         //*********************
         // Throttle the rocket 
-        //*********************      
-        set TargetVSpeed to min(landRadarAltimeter() / TouchdownSpeed,TouchdownSpeed*accl).
+        //*********************   
+        if landRadarAltimeter() < FinalBurnHeight {
+            set TargetVSpeed to TouchdownSpeed.
+        }
+        else {
+            //set TargetVSpeed to max(landRadarAltimeter() / TouchdownSpeed,TouchdownSpeed*accl).
+            // Torricelli Equation
+            set TargetVSpeed to sqrt(2 * Accl * (landRadarAltimeter() - FinalBurnHeight)). 
+        }
         IF Not BurnStarted and landRadarAltimeter() < BurnAlt {
             uiBanner("Suicide burn","Burning!"). 
             BurnStarted On.            
@@ -323,6 +330,11 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             Print "Burn Time      " + dTime                   + "                           " at (0,7).
             Print "accl           " + accl                    + "                           " at (0,8).
             Print "Fuel Time      " + FTime                   + "                           " at (0,9).
+            LOG abs(Ship:VERTICALSPEED) + "," +
+                TargetVSpeed + "," +
+                tVal + "," +
+                landRadarAltimeter() + "," +
+                accl TO "0:/land.txt".
 
         }
     }
