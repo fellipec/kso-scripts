@@ -597,7 +597,7 @@ IF KindOfCraft = "Shuttle" {
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
     SET FLAREALT TO 300.
-    SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
+    SET PitchAnglePID:MinOutput to -ShuttleGS - 25.
     SET PitchAnglePID:KP to 0.080.
     SET PitchAnglePID:KI to 0.001.
     SET PitchAnglePID:KD to 0.040.
@@ -713,12 +713,15 @@ until SafeToExit {
                     else if AirSPD < TGTSpeed 
                             or  ship:control:pilotmainthrottle > 0.4 brakes off. 
                 }
-                ELSE IF KindOfCraft = "Shuttle" {                    
-                    SET TGTSpeed to max(SQRT(TGTAltitude)*10,100).
-                    SET ATMODE to "OFF".
+                ELSE IF KindOfCraft = "Shuttle" { 
                     IF SHUTTLEWITHJETS {
                         SET TGTSpeed to max(SQRT(TGTAltitude)*6,100).
                         If AirSPD < 300 or TGTSpeed < 300 SET ATMODE TO "SPD".
+                        IF ATMODE = "SPD" SET TGTSpeed to min(SQRT(TGTAltitude)*6,340).
+                    }
+                    ELSE {
+                        SET TGTSpeed to max(SQRT(TGTAltitude)*10,100).
+                        SET ATMODE to "OFF".
                     }
                     SET BRAKES to AirSPD > TGTSpeed.
                 }
@@ -1057,7 +1060,7 @@ until SafeToExit {
             brakes on.
             chutes on.
             if partsReverseThrust() set ship:control:pilotmainthrottle to 1.
-            if ship:groundspeed < 30 set ship:control:pilotmainthrottle to 0.
+            if ship:groundspeed < 10 set ship:control:pilotmainthrottle to 0.
             // Don't let tail-dragger to nose-over when braking
             if LandingGear = "Taildragger" and PitchAngle() < 0 brakes OFF.
             // Now it's really safe to exit the autopilot.
