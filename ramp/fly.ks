@@ -67,6 +67,10 @@ FUNCTION BankAngle {
     }    
 }
 
+Function BankAngVel {
+    RETURN vdot(facing:vector, ship:angularvel).
+}
+
 FUNCTION PitchAngle {
     RETURN -(VANG(ship:up:vector,ship:facing:FOREVECTOR) - 90).
 }
@@ -521,7 +525,6 @@ SET PitchAnglePID:SETPOINT TO 0.
 local AileronPID is PIDLOOP(0.004,0.001,0.008,-1,1). 
 SET AileronPID:SETPOINT TO 0. 
 
-
 //PID Yaw Damper
 local YawDamperPID is PIDLOOP(0.010,0.005,0.010,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
@@ -529,6 +532,10 @@ SET YawDamperPID:SETPOINT TO 0.
 // PID BankAngle
 local BankAnglePID is PIDLOOP(2,0.1,0.3,-33,33). 
 SET BankAnglePID:SETPOINT TO 0. 
+
+// PID BankVel
+local BankVelPID is PIDLOOP(2,0.1,0.3,-0.2,0.2). 
+SET BankVelPID:SETPOINT TO 0. 
 
 //PID Throttle
 //local ThrottlePID is PIDLOOP(0.01,0.006,0.016,0,1). 
@@ -607,9 +614,9 @@ IF KindOfCraft = "Shuttle" {
     SET ElevatorPID:KP TO 0.050. 
     SET ElevatorPID:KI TO 0.020. 
     SET ElevatorPID:KD TO 0.030. 
-    SET AileronPID:KP TO 0.0020.
-    SET AileronPID:KI TO 0.0015.
-    SET AileronPID:KD TO 0.0050.
+    SET AileronPID:KP TO 0.0040.
+    SET AileronPID:KI TO 0.0010.
+    SET AileronPID:KD TO 0.0080.
     SET BankAnglePID:KP to 1.8.
 
     LIST Resources IN ShipResources.
@@ -699,6 +706,14 @@ until SafeToExit {
                     SET VNAVMODE TO "ALT".
                     GSLocked ON.
                 }
+
+                local GSProgAngSignal is 1.
+                IF VDOT(SHIP:UP:VECTOR,vxcl(ship:facing:starvector,ship:velocity:surface):normalized) < VDOT(SHIP:UP:VECTOR,TGTRunway:Position:normalized) {
+                    SET GSProgAngSignal TO -1.
+                }
+                local GSProgAng is VANG(TGTRunway:Position,vxcl(ship:facing:starvector,ship:velocity:surface)).
+                uiDebug(GSProgAngSignal*GSProgAng).
+
 
                 //Checks distance from centerline
                 local GDist to GroundDistance(TargetCoord).
@@ -828,18 +843,19 @@ until SafeToExit {
 
                 IF LNAVMODE = "TGT" {
                     SET dHeading TO -TargetCoord:bearing.
-                    SET AileronPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
+                    SET BankVelPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading)
+                    
                 }
                 ELSE IF LNAVMODE = "HDG" {
                     SET dHeading TO -DeltaHeading(TGTHeading).
-                    SET AileronPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
+                    SET BankVelPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
                 }
                 ELSE IF LNAVMODE = "BNK" {
-                    SET AileronPID:SETPOINT TO min(45,max(-45,TGTBank)).
+                    SET BankVelPID:SETPOINT TO min(45,max(-45,TGTBank)).
                 }
 
-
-                SET Aileron TO AileronPID:UPDATE(TimeNow, BankAngle()).
+                Set AileronPID:SETPOINT to BankVelPID:UPDATE(TimeNow,BankAngle())
+                SET Aileron TO AileronPID:UPDATE(TimeNow, BankAngVel()).
 
 
                 // RESET TRIM
@@ -875,7 +891,7 @@ until SafeToExit {
 
             // RCS/Aerosurfaces authority transition and limit
             IF KindOfCraft = "SHUTTLE" {
-                SET CTRLIMIT TO min(1,ROUND(400/AirSPD,2)).
+                SET CTRLIMIT TO min(1,ROUND(300/AirSPD,2)).
                 SET RCS TO BaroAltitude > RCSEnableAlt.
             }
             ELSE {
