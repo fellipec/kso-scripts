@@ -521,8 +521,9 @@ SET PitchAnglePID:SETPOINT TO 0.
 local AileronPID is PIDLOOP(0.004,0.001,0.008,-1,1). 
 SET AileronPID:SETPOINT TO 0. 
 
+
 //PID Yaw Damper
-local YawDamperPID is PIDLOOP(0.015,0.005,0.018,-1,1). 
+local YawDamperPID is PIDLOOP(0.010,0.005,0.010,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -574,6 +575,7 @@ local PREVIOUSAT is "".
 local PREVIOUSLNAV is "".
 local PREVIOUSVNAV is "".
 local RA is RadarAltimeter().
+local RCSEnableAlt is 10000.
 local ShipStatus is Ship:Status.
 local ShipResources is "".
 local ShuttleWithJets is False.
@@ -597,16 +599,17 @@ IF KindOfCraft = "Shuttle" {
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
     SET FLAREALT TO 300.
-    SET PitchAnglePID:MinOutput to -ShuttleGS - 25.
-    SET PitchAnglePID:KP to 0.080.
-    SET PitchAnglePID:KI to 0.001.
-    SET PitchAnglePID:KD to 0.040.
-    SET ElevatorPID:KP TO 0.030. 
-    SET ElevatorPID:KI TO 0.010. 
+    SET PitchAnglePID:MaxOutput to 5.
+    SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
+    SET PitchAnglePID:KP to 0.100.
+    SET PitchAnglePID:KI to 0.010.
+    SET PitchAnglePID:KD to 0.050.
+    SET ElevatorPID:KP TO 0.050. 
+    SET ElevatorPID:KI TO 0.020. 
     SET ElevatorPID:KD TO 0.030. 
-    SET AileronPID:KP TO 0.0050.
+    SET AileronPID:KP TO 0.0020.
     SET AileronPID:KI TO 0.0015.
-    SET AileronPID:KD TO 0.0100.
+    SET AileronPID:KD TO 0.0050.
     SET BankAnglePID:KP to 1.8.
 
     LIST Resources IN ShipResources.
@@ -630,6 +633,10 @@ ELSE IF KindOfCraft = "Plane" {
     SET FLAREALT TO 100.
     uiChime().
 }
+
+local AileronBaseKP is AileronPID:KP.
+local AileronBaseKI is AileronPID:KP.
+local AileronBaseKD is AileronPID:KP.
 
 //Holo ILS Variables
 local RAMPEND is 0.
@@ -701,6 +708,12 @@ until SafeToExit {
                 ELSE IF abs(CLDist) < GDist/3 SET TGTHeading TO ABS(90 + arcsin(CLDist/(GDist/3))).
                 ELSE SET TGTHeading TO 90 + ((CLDist/ABS(CLDist))*90). // 0 or 180 heading, depending if ship is north or south of runway.
                 SET LNAVMODE TO "HDG". 
+
+                //Try to avoid banking while diving
+                IF BaroAltitude > TGTAltitude + 1000  {
+                    SET LNAVMODE to "BNK".
+                    SET TGTBank to 0.
+                }
 
                 // Checks for excessive airspeed on final. 
                 IF KindOfCraft = "Plane" {
@@ -862,8 +875,8 @@ until SafeToExit {
 
             // RCS/Aerosurfaces authority transition and limit
             IF KindOfCraft = "SHUTTLE" {
-                SET CTRLIMIT TO min(1,ROUND(340/AirSPD,2)).
-                SET RCS TO BaroAltitude > 15000.
+                SET CTRLIMIT TO min(1,ROUND(400/AirSPD,2)).
+                SET RCS TO BaroAltitude > RCSEnableAlt.
             }
             ELSE {
                 SET CTRLIMIT TO min(1,ROUND(250/AirSPD,2)).
@@ -876,9 +889,9 @@ until SafeToExit {
             // Ease pitch controls in high speeds or G loads
             IF ElevatorPID:MAXOUTPUT <> MIN(1,CTRLIMIT * 1.5) OR MaxGProt {
                 IF MaxGProt and abs(VerticalG) > CONSTANT:G0*MaxGAllowed { 
-                    // MaxG detected once and G still too high, limit elevator to 99.5% of previous range but limit that to 20% of actuation
-                    SET ElevatorPID:MAXOUTPUT TO MAX(MIN(1,ElevatorPID:MAXOUTPUT * 0.995),0.2).
-                    SET ElevatorPID:MINOUTPUT TO MIN(MAX(-1,ElevatorPID:MINOUTPUT * 0.995),-0.2).
+                    // MaxG detected once and G still too high, limit elevator to 98% of previous range but limit that to 20% of actuation
+                    SET ElevatorPID:MAXOUTPUT TO MAX(MIN(1,ElevatorPID:MAXOUTPUT * 0.98),0.2).
+                    SET ElevatorPID:MINOUTPUT TO MIN(MAX(-1,ElevatorPID:MINOUTPUT * 0.98),-0.2).
                     uiDebug("MaxG Exceeded").
                 }
                 ELSE IF MaxGProt and abs(VerticalG) < CONSTANT:G0*MaxGAllowed {
@@ -902,12 +915,15 @@ until SafeToExit {
             IF AileronPID:MAXOUTPUT <> CTRLIMIT. {
                 SET AileronPID:MAXOUTPUT TO CTRLIMIT.
                 SET AileronPID:MINOUTPUT TO -CTRLIMIT.
+                // set AileronPID:KP to AileronBaseKP * CTRLIMIT.
+                // set AileronPID:KI to AileronBaseKI * CTRLIMIT.
+                // set AileronPID:KD to AileronBaseKD * CTRLIMIT.
             }
 
             // Yaw Damper
-            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT * 0.5 .{
-                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT * 0.5.
-                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT * 0.5.
+            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT * 0.25 .{
+                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT * 0.25.
+                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT * 0.25.
             }
             SET Rudder TO YawDamperPID:UPDATE(TimeNow, YawError()).
             SET SHIP:CONTROL:YAW TO Rudder.

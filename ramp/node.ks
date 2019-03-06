@@ -108,7 +108,7 @@ utilRCSCancelVelocity(ndDeltaV@,0.1,15).
 
 // Fault if remaining dv > 5% of initial AND mag is > 0.1 m/s
 if nodeNd:deltav:mag > nodeDv0:mag * 0.05 and nodeNd:deltav:mag > 0.1 {
-  uiFatal("Node", "BURN FAULT " + round(nodeNd:deltav:mag, 1) + " m/s").
+  //uiFatal("Node", "BURN FAULT " + round(nodeNd:deltav:mag, 1) + " m/s").
 } else if nodeNd:deltav:mag > 0.1 {
   uiWarning("Node", "BURN FAULT " + round(nodeNd:deltav:mag, 1) + " m/s").
 }

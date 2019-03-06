@@ -1,3 +1,32 @@
+//Global Lexicon for UTILFACEBURN
+
+FUNCTION UTILFACEBURNHasSensors { 
+  // Checks if ship have required sensors:
+  // - Accelerometer (Double-C Seismic Accelerometer) 
+  // - Gravity Sensor (GRAVMAX Negative Gravioli Detector)
+  LOCAL HasA IS False.
+  LOCAL HasG IS False.
+  LIST SENSORS IN SENSELIST.
+  FOR S IN SENSELIST {
+    IF S:TYPE = "ACC" { SET HasA to True. }
+    IF S:TYPE = "GRAV" { SET HasG to True. }
+  }
+  IF HasA AND HasG { RETURN TRUE. }
+  ELSE { RETURN FALSE. }
+}
+
+GLOBAL UTILFACEBURNOSS IS LEXICON().
+UTILFACEBURNOSS:add("t0",time:seconds).
+UTILFACEBURNOSS:add("pitch_angle",0).
+UTILFACEBURNOSS:add("pitch_sum",0).
+UTILFACEBURNOSS:add("yaw_angle",0).
+UTILFACEBURNOSS:add("yaw_sum",0).
+UTILFACEBURNOSS:add("Average_samples",0).
+UTILFACEBURNOSS:add("Average_Interval",1).
+UTILFACEBURNOSS:add("Average_Interval_Max",5).
+UTILFACEBURNOSS:add("Ship_Name",SHIP:NAME:TOSTRING).
+UTILFACEBURNOSS:add("HasSensors",UTILFACEBURNHasSensors()).
+
 // Determine the time of ship1's closest approach to ship2.
 function utilClosestApproach {
   parameter ship1.
@@ -47,7 +76,125 @@ function utilCloseApproach {
   return Rbest.
 }
 
+
 FUNCTION utilFaceBurn {
+
+// This function is intended to use with shuttles and spaceplanes that have engines not in line with CoM.
+// Usage: LOCK STEERING TO utilFaceBurn(THEDIRECTIONYOUWANTTOSTEER).
+// Example: LOCK STEERING TO utilFaceBurn(PROGRADE).
+
+  PARAMETER DIRTOSTEER. // The direction you want the ship to steer to
+  LOCAL NEWDIRTOSTEER IS DIRTOSTEER. // Return value. Defaults to original direction.
+
+  LOCAL OSS IS LEXICON(). // Used to store all persistent data
+  LOCAL trueacc IS 0. // Used to store ship acceleration vector
+  local g is 0.
+  local gVec is 0.
+  local accVec is 0.
+
+
+
+  FUNCTION EngineFacing {
+    LOCAL LEngines IS 0.
+    LIST ENGINES IN LEngines.
+    FOR eng IN LEngines {
+      if eng:ignition and not eng:flameout{
+        return eng:facing:vector.
+      }
+    }
+  }
+  FUNCTION EnginePos {
+    LOCAL LEngines IS 0.
+    LIST ENGINES IN LEngines.
+    FOR eng IN LEngines {
+      if eng:ignition and not eng:flameout{
+        return eng:position.
+      }
+    }
+  }
+
+  IF UTILFACEBURNOSS["HasSensors"] { // Checks for sensors
+    LOCK trueacc TO ship:sensors:acc - ship:sensors:grav.
+  }
+  ELSE { // If ship have no sensors, just returns direction without any correction
+    RETURN DIRTOSTEER. 
+  }
+
+
+  // Only account for offset thrust if there is thrust!
+  if throttle > 0.09 { 
+      local dt to time:seconds - UTILFACEBURNOSS["t0"]. // Delta Time
+      if dt > UTILFACEBURNOSS["Average_Interval"]  {
+        // This section takes the average of the offset, reset the average counters and reset the timer.
+        SET UTILFACEBURNOSS["t0"] TO TIME:SECONDS.
+        if UTILFACEBURNOSS["Average_samples"] > 0 {
+          // Pitch 
+          SET UTILFACEBURNOSS["pitch_angle"] TO UTILFACEBURNOSS["pitch_sum"] / UTILFACEBURNOSS["Average_samples"]. 
+          SET UTILFACEBURNOSS["pitch_sum"] to UTILFACEBURNOSS["pitch_angle"].
+          // Yaw
+          SET UTILFACEBURNOSS["yaw_angle"] TO UTILFACEBURNOSS["yaw_sum"] / UTILFACEBURNOSS["Average_samples"]. 
+          SET UTILFACEBURNOSS["yaw_sum"] to UTILFACEBURNOSS["yaw_angle"].
+          // Sample count
+          SET UTILFACEBURNOSS["Average_samples"] TO 1.
+          // Increases the Average interval to try to keep the adjusts more smooth.
+          if UTILFACEBURNOSS["Average_Interval"] < UTILFACEBURNOSS["Average_Interval_Max"] { 
+            SET UTILFACEBURNOSS["Average_Interval"] to max(UTILFACEBURNOSS["Average_Interval_Max"], (UTILFACEBURNOSS["Average_Interval"] + dt)) .
+          } 
+        }
+      }
+      else { // Accumulate the thrust offset error to be averaged by the section above
+          
+          // Thanks to reddit.com/user/ElWanderer_KSP
+          // exclude the left/right vector to leave only forwards and up/down
+          LOCAL pitch_error_vec IS VXCL(FACING:STARVECTOR,trueacc).
+          LOCAL pitch_error_ang IS VANG(FACING:VECTOR,pitch_error_vec).
+          If VDOT(FACING:TOPVECTOR,pitch_error_vec) > 0{
+            SET pitch_error_ang TO -pitch_error_ang.
+          }
+
+          // exclude the up/down vector to leave only forwards and left/right
+          LOCAL yaw_error_vec IS VXCL(FACING:TOPVECTOR,trueacc).
+          LOCAL yaw_error_ang IS VANG(FACING:VECTOR,yaw_error_vec).
+          IF VDOT(FACING:STARVECTOR,yaw_error_vec) < 0{
+            SET yaw_error_ang TO -yaw_error_ang.
+          }
+
+          //Correct for ACC sensor bug
+          IF VANG(FACING:VECTOR,trueacc) < VANG(-EnginePos,trueacc) {
+            // uidebug("Fixing bug").
+            SET pitch_error_ang TO -pitch_error_ang.
+          }
+          //LOG "P: " + pitch_error_ang TO "0:/oss.txt".
+          //LOG "Y: " + yaw_error_ang TO "0:/oss.txt".
+          set UTILFACEBURNOSS["pitch_sum"] to UTILFACEBURNOSS["pitch_sum"] + pitch_error_ang.
+          set UTILFACEBURNOSS["yaw_sum"] to UTILFACEBURNOSS["yaw_sum"] + yaw_error_ang.
+          SET UTILFACEBURNOSS["Average_samples"] TO UTILFACEBURNOSS["Average_samples"] + 1.
+      }
+      // Set the return value to original direction combined with the thrust offset
+      //SET NEWDIRTOSTEER TO r(0-OSS["pitch_angle"],OSS["yaw_angle"],0) * DIRTOSTEER.
+      SET NEWDIRTOSTEER TO DIRTOSTEER.
+      IF ABS(UTILFACEBURNOSS["pitch_angle"]) > 1 { // Don't bother correcting small errors
+        SET NEWDIRTOSTEER TO ANGLEAXIS(-UTILFACEBURNOSS["pitch_angle"],SHIP:FACING:STARVECTOR) * NEWDIRTOSTEER.
+      }
+      IF ABS(UTILFACEBURNOSS["yaw_angle"]) > 1 { // Don't bother correcting small errors
+        SET NEWDIRTOSTEER TO ANGLEAXIS(UTILFACEBURNOSS["yaw_angle"],SHIP:FACING:UPVECTOR) * NEWDIRTOSTEER.
+      }
+  } 
+
+  // uidebug("Pitch Error:" + (-OSS["pitch_angle"])).
+  // SET DRAWSV TO VECDRAW(v(0,0,0),trueacc:normalized*100, red, "", 1, true, 1). // Steering
+  // SET DRAWV TO VECDRAW(v(0,0,0),ship:sensors:acc:normalized*100, green, "", 1, true, 1). // Velocity
+  // SET DRAWHV TO VECDRAW(v(0,0,0),-EnginePos():normalized*100, YELLOW, "", 1, true, 1). //Horizontal Velocity
+
+  // This function is pretty processor intensive, make sure it don't execute too much often.
+  WAIT 0.
+  // Saves the persistent values to a file.
+  RETURN NEWDIRTOSTEER.
+}
+
+
+
+FUNCTION utilFaceBurnJSON {
 
 // This function is intended to use with shuttles and spaceplanes that have engines not in line with CoM.
 // Usage: LOCK STEERING TO utilFaceBurn(THEDIRECTIONYOUWANTTOSTEER).
@@ -123,12 +270,14 @@ FUNCTION utilFaceBurn {
     SET OSS TO InitOSS(). 
   }
 
+
   IF OSS["HasSensors"] { // Checks for sensors
     LOCK trueacc TO ship:sensors:acc - ship:sensors:grav.
   }
   ELSE { // If ship have no sensors, just returns direction without any correction
     RETURN DIRTOSTEER. 
   }
+
 
 
   // Only account for offset thrust if there is thrust!
@@ -197,7 +346,7 @@ FUNCTION utilFaceBurn {
   // SET DRAWHV TO VECDRAW(v(0,0,0),-EnginePos():normalized*100, YELLOW, "", 1, true, 1). //Horizontal Velocity
 
   // This function is pretty processor intensive, make sure it don't execute too much often.
-  WAIT 0.2.
+  WAIT 0.5.
   // Saves the persistent values to a file.
   WRITEJSON(OSS,"oss.json").
   RETURN NEWDIRTOSTEER.

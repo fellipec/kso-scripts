@@ -111,7 +111,7 @@ WAIT UNTIL SHIP:ALTITUDE < 71000.
 KUNIVERSE:TIMEWARP:CANCELWARP().
 WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope) OR ship:airspeed < 340.
 uiBanner("Deorbit","Preparing for atmospheric flight...").
-LOCK STEERING TO HEADING(90,-3).
+LOCK STEERING TO HEADING(90,-Slope).
 WAIT 5.
 uiBanner("Deorbit","Activating atmospheric autopilot...").
 UNLOCK THROTTLE.

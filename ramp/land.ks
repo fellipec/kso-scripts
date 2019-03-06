@@ -31,10 +31,11 @@ PARAMETER LandLng is ship:geoposition:lng.
 
 
 LOCAL MaxHVel is 1.
-LOCAL FinalBurnHeight is 50.
+LOCAL FinalBurnHeight is 20.
 
 runoncepath("lib_ui").
 runoncepath("lib_util").
+runoncepath("lib_parts").
 runoncepath("lib_land").
 
 SAS OFF.
@@ -42,7 +43,7 @@ BAYS OFF.
 GEAR OFF.
 LADDERS OFF.
 
-DrawDebugVectors on.
+DrawDebugVectors off.
 
 
 
@@ -151,7 +152,11 @@ if ship:status = "ORBITING" {
     uiBanner("Deorbit","Retrograde"). 
     PANELS OFF.
     RADIATORS OFF.
+    LADDERS OFF.
+    BAYS OFF.
+    DEPLOYDRILLS OFF.
     LEGS OFF.
+    partsRetractAntennas().    
 }
 
 
@@ -161,7 +166,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     local BurnStarted is false.
 
     //PID Throttle
-    SET ThrottlePID to PIDLOOP(0.05,0.05,0.03). // Kp, Ki, Kd
+    SET ThrottlePID to PIDLOOP(0.03,0.02,0.01). // Kp, Ki, Kd
     SET ThrottlePID:MAXOUTPUT TO 1.
     SET ThrottlePID:MINOUTPUT TO 0.
     SET ThrottlePID:SETPOINT TO 0. 
@@ -197,7 +202,6 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     lock dTime to ShipVelocity:MAG / accl.
     lock BurnDist to (ShipVelocity:MAG * dTime) - (0.5*accl*(dTime^2)).
     lock BurnAlt to BurnDist + FinalBurnHeight.
-    local NeedKillHV is False.
 
     //Check Stages   
 
@@ -244,29 +248,20 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         // Default scenario, try to compensate for horizontal velocity while brake
         SET SteerVector to -ShipVelocity - ShipHVelocity. 
 
-        If NeedKillHV and landRadarAltimeter() > FinalBurnHeight*2 { // Take care of excessive horizontal velocity
-            SET SteerVector to -ShipHVelocity. 
-            IF ShipHVelocity:MAG < MaxHVel OR ShipHVelocity:MAG < ShipVelocity:MAG * 0.4 NeedKillHV Off.
+        // Put the ship upright if slow enough.
+        IF SHIP:VERTICALSPEED > -TouchdownSpeed {
+            SET SteerVector to SHIP:UP:VECTOR.
         }
-        Else {
-            // If the horizontal velocity is low enough, just compensate for ship velocity.
-            IF ShipHVelocity:MAG < MaxHVel {
-                SET SteerVector to -ShipVelocity.
-                NeedKillHV Off.
-            }
-            // Near touchdown make sure the ship is pointed straight up.
-            ELSE IF landRadarAltimeter() <  FinalBurnHeight*2 {
-                SET SteerVector to SHIP:UP:VECTOR.
-            }
-            // When the horizontal velocity is the major part of ship velocity, try to kill it first
-            ELSE IF ShipHVelocity:MAG > ShipVelocity:MAG * 0.6 {
-                SET SteerVector to -ShipHVelocity. 
-                NeedKillHV On.
-            }
 
-            // If ship is going upwards, steer prograde. This should not happen usually.
-            ELSE IF Ship:Verticalspeed > 0 SET SteerVector to ShipVelocity.
+        // Near touchdown make sure the ship is pointed straight up.
+        IF landRadarAltimeter() <  FinalBurnHeight*2 {
+            SET SteerVector to SHIP:UP:VECTOR.
+        }        
+        // If the horizontal velocity is low enough, just compensate for ship velocity.
+        ELSE IF ShipHVelocity:MAG < MaxHVel {
+            SET SteerVector to -ShipVelocity.
         }
+       
  
         set sDir TO SteerVector:Direction. 
 
@@ -277,9 +272,8 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             set TargetVSpeed to TouchdownSpeed.
         }
         else {
-            //set TargetVSpeed to max(landRadarAltimeter() / TouchdownSpeed,TouchdownSpeed*accl).
-            // Torricelli Equation
-            set TargetVSpeed to sqrt(2 * Accl * (landRadarAltimeter() - FinalBurnHeight)). 
+            // Torricelli Equation (Limited to 2G Accl)
+            set TargetVSpeed to max(sqrt(2 * min(Accl,19.6) * (landRadarAltimeter() - FinalBurnHeight)),TouchdownSpeed). 
         }
         IF Not BurnStarted and landRadarAltimeter() < BurnAlt {
             uiBanner("Suicide burn","Burning!"). 
@@ -330,12 +324,6 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             Print "Burn Time      " + dTime                   + "                           " at (0,7).
             Print "accl           " + accl                    + "                           " at (0,8).
             Print "Fuel Time      " + FTime                   + "                           " at (0,9).
-            LOG abs(Ship:VERTICALSPEED) + "," +
-                TargetVSpeed + "," +
-                tVal + "," +
-                landRadarAltimeter() + "," +
-                accl TO "0:/land.txt".
-
         }
     }
 
