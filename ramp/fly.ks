@@ -141,9 +141,9 @@ FUNCTION PlaneWeight {
 
 Function PitchLimit {
     local ShipWeight is PlaneWeight().
-    if Ship:AvailableThrust > ShipWeight return 45.
-    uiDebug("TWR: " + Round((Ship:AvailableThrust / ShipWeight),2) ).
-    return Ship:AvailableThrust / ShipWeight * 30.
+    if Ship:AvailableThrustAt(1) > ShipWeight return 45.
+    uiDebug("TWR: " + Round((Ship:AvailableThrustAt(1) / ShipWeight),2) ).
+    return Ship:AvailableThrustAt(1) / ShipWeight * 30.
 }
 
 
@@ -158,7 +158,7 @@ FUNCTION TakeOff {
     local P is PitchLimit().
     LOCK STEERING TO HEADING(MagHeading(), 0).
     wait until ship:airspeed > 50.
-    LOCK STEERING TO HEADING(MagHeading(), P).
+    LOCK STEERING TO HEADING(MagHeading(), P*0.66).
     wait until ship:altitude > LandedAlt + 50.
     gear off.
     lights off.
@@ -514,15 +514,15 @@ ON ABORT {
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(0.020,0.010,0.020,-1,1).
+local ElevatorPID is PIDLOOP(0.030,0.010,0.015,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(0.06,0.010,0.020,-20,20). 
+local PitchAnglePID is PIDLOOP(0.050,0.020,0.010,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 //PID Aileron  
-local AileronPID is PIDLOOP(0.004,0.001,0.008,-1,1). 
+local AileronPID is PIDLOOP(0.4,0.03,0.01,-1,1). 
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
@@ -534,7 +534,7 @@ local BankAnglePID is PIDLOOP(2,0.1,0.3,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.08,0.04,0.01,-0.2,0.2). 
+local BankVelPID is PIDLOOP(0.04,0.02,0.00,-0.2,0.2). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Throttle
@@ -614,7 +614,7 @@ IF KindOfCraft = "Shuttle" {
     SET PitchAnglePID:KD to 0.050.
     SET ElevatorPID:KP TO 0.020. 
     SET ElevatorPID:KI TO 0.010. 
-    SET ElevatorPID:KD TO 0.015. 
+    SET ElevatorPID:KD TO 0.010. 
     SET AileronPID:KP TO 0.40.
     SET AileronPID:KI TO 0.10.
     SET AileronPID:KD TO 0.15.
@@ -767,6 +767,9 @@ until SafeToExit {
                     SET TGTHeading TO 90.
                     PitchAnglePID:RESET.
                     IF KindOfCraft = "Shuttle" SET PitchAnglePID:MAXOUTPUT to 15.
+                    SET PitchAnglePID:KP TO PitchAnglePID:KP * 3.
+                    SET PitchAnglePID:Ki TO PitchAnglePID:Ki * 2.
+                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 2.
                     SET ElevatorPID:Kp TO ElevatorPID:Kp*2.2.
                     SET ElevatorPID:Ki to ElevatorPID:Ki*1.2.
                     SET ElevatorPID:Kd to ElevatorPID:Kd*1.5.
@@ -1058,7 +1061,7 @@ until SafeToExit {
             SET LabelWaypointDist:text to ROUND(GroundDistance(TargetCoord)/1000,1) + " km".
             SET LabelHDG:TEXT  TO "<b>" + ROUND(TGTHeading,2):TOSTRING + "º</b>".
             SET LabelALT:TEXT  TO "<b>" + ROUND(TGTAltitude,2):TOSTRING + " m</b>".
-            SET LabelBNK:TEXT TO  "<b>" + ROUND(AileronPID:SETPOINT,2) + "º</b>".
+            SET LabelBNK:TEXT TO  "<b>" + ROUND(BankVelPID:Setpoint,2) + "º</b>".
             SET LabelPIT:TEXT TO  "<b>" + ROUND(ElevatorPID:SETPOINT,2) + "º</b>".
             SET LabelSPD:TEXT TO  "<b>" + ROUND(TGTSpeed) + " m/s | " + ROUND(uiMSTOKMH(TGTSpeed),2) + " km/h</b>".
         }
