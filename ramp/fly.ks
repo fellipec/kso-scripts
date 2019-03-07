@@ -534,7 +534,7 @@ local BankAnglePID is PIDLOOP(2,0.1,0.3,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.04,0.01,0.03,-0.2,0.2). 
+local BankVelPID is PIDLOOP(0.08,0.04,0.01,-0.2,0.2). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Throttle
@@ -612,12 +612,12 @@ IF KindOfCraft = "Shuttle" {
     SET PitchAnglePID:KP to 0.100.
     SET PitchAnglePID:KI to 0.010.
     SET PitchAnglePID:KD to 0.050.
-    SET ElevatorPID:KP TO 0.030. 
-    SET ElevatorPID:KI TO 0.020. 
-    SET ElevatorPID:KD TO 0.030. 
+    SET ElevatorPID:KP TO 0.020. 
+    SET ElevatorPID:KI TO 0.010. 
+    SET ElevatorPID:KD TO 0.015. 
     SET AileronPID:KP TO 0.40.
     SET AileronPID:KI TO 0.10.
-    SET AileronPID:KD TO 0.30.
+    SET AileronPID:KD TO 0.15.
     SET BankAnglePID:KP to 1.8.
 
     LIST Resources IN ShipResources.
