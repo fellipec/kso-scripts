@@ -68,7 +68,7 @@ FUNCTION BankAngle {
 }
 
 Function BankAngVel {
-    RETURN vdot(facing:vector, ship:angularvel).
+    RETURN -vdot(facing:vector, ship:angularvel).
 }
 
 FUNCTION PitchAngle {
@@ -534,7 +534,7 @@ local BankAnglePID is PIDLOOP(2,0.1,0.3,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(2,0.1,0.3,-0.2,0.2). 
+local BankVelPID is PIDLOOP(0.04,0.01,0.03,-0.2,0.2). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Throttle
@@ -569,12 +569,13 @@ local dAlt is 0.
 local dHeading is 0.
 local FLAREALT is 150.
 local GSAng is 5.
+local GSProgAng is 0.
 local GSLocked is False.
 local HasTermometer is partsHasTermometer().
 local ILSHOLDALT is 0.
 local LNAVMODE is "HDG".
 local MaxAoA is 20.
-local MaxGAllowed is 2.5.
+local MaxGAllowed is 7.
 local MaxGProt is False.
 local PitchingDown is 1.
 local PREVIOUSAP is "".
@@ -611,12 +612,12 @@ IF KindOfCraft = "Shuttle" {
     SET PitchAnglePID:KP to 0.100.
     SET PitchAnglePID:KI to 0.010.
     SET PitchAnglePID:KD to 0.050.
-    SET ElevatorPID:KP TO 0.050. 
+    SET ElevatorPID:KP TO 0.030. 
     SET ElevatorPID:KI TO 0.020. 
     SET ElevatorPID:KD TO 0.030. 
-    SET AileronPID:KP TO 0.0040.
-    SET AileronPID:KI TO 0.0010.
-    SET AileronPID:KD TO 0.0080.
+    SET AileronPID:KP TO 0.40.
+    SET AileronPID:KI TO 0.10.
+    SET AileronPID:KD TO 0.30.
     SET BankAnglePID:KP to 1.8.
 
     LIST Resources IN ShipResources.
@@ -706,13 +707,15 @@ until SafeToExit {
                     SET VNAVMODE TO "ALT".
                     GSLocked ON.
                 }
-
-                local GSProgAngSignal is 1.
-                IF VDOT(SHIP:UP:VECTOR,vxcl(ship:facing:starvector,ship:velocity:surface):normalized) < VDOT(SHIP:UP:VECTOR,TGTRunway:Position:normalized) {
-                    SET GSProgAngSignal TO -1.
+                IF KindOfCraft = "SHUTTLE" and GSLocked {
+                    local GSProgAngSignal is 1.
+                    IF VDOT(SHIP:UP:VECTOR,vxcl(ship:facing:starvector,ship:velocity:surface):normalized) < VDOT(SHIP:UP:VECTOR,TGTRunway:Position:normalized) {
+                        SET GSProgAngSignal TO -1.
+                    }
+                    set GSProgAng to VANG(TGTRunway:Position,vxcl(ship:facing:starvector,ship:velocity:surface)) * GSProgAngSignal.
+                    SET VNAVMODE TO "GS".
+                    //uiDebug(GSProgAngSignal*GSProgAng).
                 }
-                local GSProgAng is VANG(TGTRunway:Position,vxcl(ship:facing:starvector,ship:velocity:surface)).
-                uiDebug(GSProgAngSignal*GSProgAng).
 
 
                 //Checks distance from centerline
@@ -724,11 +727,11 @@ until SafeToExit {
                 ELSE SET TGTHeading TO 90 + ((CLDist/ABS(CLDist))*90). // 0 or 180 heading, depending if ship is north or south of runway.
                 SET LNAVMODE TO "HDG". 
 
-                //Try to avoid banking while diving
-                IF BaroAltitude > TGTAltitude + 1000  {
-                    SET LNAVMODE to "BNK".
-                    SET TGTBank to 0.
-                }
+                // //Try to avoid banking while diving
+                // IF BaroAltitude > TGTAltitude + 1000  {
+                //     SET LNAVMODE to "BNK".
+                //     SET TGTBank to 0.
+                // }
 
                 // Checks for excessive airspeed on final. 
                 IF KindOfCraft = "Plane" {
@@ -827,23 +830,33 @@ until SafeToExit {
 
                 // DEAL WITH VNAV
 
-                IF VNAVMODE = "ALT" {
-                    SET dAlt to BaroAltitude - TGTAltitude.
-                    SET ElevatorPID:SETPOINT TO PitchAnglePID:UPDATE(TimeNow,dAlt).
+
+                IF VNAVMODE = "GS"{ // Glideslope follow mode
+                    SET ElevatorPID:SETPOINT to 0.
+                    SET Elevator TO ElevatorPID:UPDATE(TimeNow, GSProgAng).
                 }
-                ELSE IF VNAVMODE = "PIT" {
-                    SET ElevatorPID:SETPOINT to TGTPitch.
-                }
-                ELSE IF VNAVMODE = "SPU" {
-                    SET ElevatorPID:SETPOINT to ProgradePitchAngle().
-                }
-                SET Elevator TO ElevatorPID:UPDATE(TimeNow, PitchAngle() ).
+                ELSE{ // Pitch based modes                    
+                    IF VNAVMODE = "ALT" {
+                        SET dAlt to BaroAltitude - TGTAltitude.
+                        SET ElevatorPID:SETPOINT TO PitchAnglePID:UPDATE(TimeNow,dAlt).
+                    }
+                    ELSE IF VNAVMODE = "PIT" {
+                        SET ElevatorPID:SETPOINT to TGTPitch.
+                    }
+                    ELSE IF VNAVMODE = "SPU" {
+                        SET ElevatorPID:SETPOINT to ProgradePitchAngle().
+                    }
+                    SET Elevator TO ElevatorPID:UPDATE(TimeNow, PitchAngle() ).
+                }                
+
+
+                
                 
                 // DEAL WITH LNAV
 
                 IF LNAVMODE = "TGT" {
                     SET dHeading TO -TargetCoord:bearing.
-                    SET BankVelPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading)
+                    SET BankVelPID:SETPOINT to BankAnglePID:UPDATE(TimeNow,dHeading).
                     
                 }
                 ELSE IF LNAVMODE = "HDG" {
@@ -854,8 +867,19 @@ until SafeToExit {
                     SET BankVelPID:SETPOINT TO min(45,max(-45,TGTBank)).
                 }
 
-                Set AileronPID:SETPOINT to BankVelPID:UPDATE(TimeNow,BankAngle())
+                Set AileronPID:SETPOINT to BankVelPID:UPDATE(TimeNow,BankAngle()).
                 SET Aileron TO AileronPID:UPDATE(TimeNow, BankAngVel()).
+
+                PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       "at (0,1).
+                PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,2).
+
+                PRINT "T Bank Vel:         " + round(AileronPID:SETPOINT,3) +   "       " At (0,3).
+                PRINT "Bank Vel:           " + ROUND(BankAngVel(),2) +          "       "at (0,4).
+
+                PRINT "Aileron:            " + ROUND(Aileron,2) +  "       "            At (0,5).
+
+                Print "GS Angle:           " + Round(GSProgAng,3)+  "       "            At (0,6).
+
 
 
                 // RESET TRIM
