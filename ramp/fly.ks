@@ -526,7 +526,7 @@ local AileronPID is PIDLOOP(0.4,0.03,0.01,-1,1).
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
-local YawDamperPID is PIDLOOP(0.010,0.005,0.010,-1,1). 
+local YawDamperPID is PIDLOOP(0.015,0.008,0.006,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID BankAngle

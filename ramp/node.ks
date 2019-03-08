@@ -75,9 +75,9 @@ until nodeDone
         //feather the throttle
         set ship:control:pilotmainthrottle to min(nodeDvMin/nodeAccel, 1.0).
       } else {
-        // we are not facing correctly! cut back thrust to 10% so gimbaled
+        // we are not facing correctly! cut back thrust to 20% so gimbaled
         // engine will push us back on course
-        set ship:control:pilotmainthrottle to 0.1.
+        set ship:control:pilotmainthrottle to 0.2.
       }
       // three conditions for being done:
       //   1) overshot (node delta vee is pointing opposite from initial)
