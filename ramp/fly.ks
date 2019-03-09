@@ -42,6 +42,10 @@ FUNCTION YawError {
     
 }
 
+Function YawAngVel {
+    RETURN vdot(facing:topvector, ship:angularvel).
+}
+
 FUNCTION AoA {
     LOCAL pitch_error_vec IS VXCL(FACING:STARVECTOR,ship:srfprograde:vector).
     LOCAL pitch_error_ang IS VANG(FACING:VECTOR,pitch_error_vec).
@@ -73,6 +77,10 @@ Function BankAngVel {
 
 FUNCTION PitchAngle {
     RETURN -(VANG(ship:up:vector,ship:facing:FOREVECTOR) - 90).
+}
+
+Function PitchAngVel {
+    RETURN -vdot(facing:starvector, ship:angularvel).
 }
 
 FUNCTION ProgradePitchAngle {
@@ -166,7 +174,7 @@ FUNCTION TakeOff {
     unlock steering.
     wait 0.
     sas on.
-    wait until ship:altitude > LandedAlt + 500.
+    wait until ship:altitude > LandedAlt + 100.
     unlock throttle.
 }
 
@@ -514,27 +522,39 @@ ON ABORT {
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(0.030,0.010,0.015,-1,1).
+local ElevatorPID is PIDLOOP(1.0,0.50,0.10,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
+
+// PID GS
+local GSPID is PIDLOOP(0.6,0.20,0.10,-30,30). 
+SET GSPID:SETPOINT TO 0.
 
 // PID Pitch Angle
 local PitchAnglePID is PIDLOOP(0.050,0.020,0.010,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
+// PID PitchAngVel
+local PitchAngVelPID is PIDLOOP(0.025,0.005,0.001,-0.25,0.25). 
+SET PitchAngVelPID:SETPOINT TO 0. 
+
 //PID Aileron  
-local AileronPID is PIDLOOP(0.4,0.03,0.01,-1,1). 
+local AileronPID is PIDLOOP(0.1,0.005,0.001,-1,1). 
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
-local YawDamperPID is PIDLOOP(0.015,0.008,0.006,-1,1). 
+local YawDamperPID is PIDLOOP(1,0.3,0.1,-1,1). 
 SET YawDamperPID:SETPOINT TO 0. 
+
+// PID YawVel
+local YawVelPID is PIDLOOP(0.04,0.02,0.01,-0.2,0.2). 
+SET YawVelPID:SETPOINT TO 0. 
 
 // PID BankAngle
 local BankAnglePID is PIDLOOP(2,0.1,0.3,-33,33). 
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.04,0.02,0.00,-0.2,0.2). 
+local BankVelPID is PIDLOOP(0.04,0.02,0.001,-0.2,0.2). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Throttle
@@ -618,6 +638,8 @@ IF KindOfCraft = "Shuttle" {
     SET AileronPID:KP TO 0.40.
     SET AileronPID:KI TO 0.10.
     SET AileronPID:KD TO 0.15.
+    SET GSPID:MAXOutput to -GSAng +25.
+    SET GSPID:MINOutput to -GSAng -25.
     SET BankAnglePID:KP to 1.8.
 
     LIST Resources IN ShipResources.
@@ -832,28 +854,25 @@ until SafeToExit {
 
 
                 // DEAL WITH VNAV
-
-
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
-                    SET ElevatorPID:SETPOINT to 0.
-                    SET Elevator TO ElevatorPID:UPDATE(TimeNow, GSProgAng).
+                    SET GSPID:MAXOutput to -GSAng +25.
+                    SET GSPID:MINOutput to -GSAng -25.
+                    SET PitchAngVelPID:SETPOINT to GSPID:UPDATE(TimeNow, GSProgAng).
                 }
-                ELSE{ // Pitch based modes                    
-                    IF VNAVMODE = "ALT" {
-                        SET dAlt to BaroAltitude - TGTAltitude.
-                        SET ElevatorPID:SETPOINT TO PitchAnglePID:UPDATE(TimeNow,dAlt).
-                    }
-                    ELSE IF VNAVMODE = "PIT" {
-                        SET ElevatorPID:SETPOINT to TGTPitch.
-                    }
-                    ELSE IF VNAVMODE = "SPU" {
-                        SET ElevatorPID:SETPOINT to ProgradePitchAngle().
-                    }
-                    SET Elevator TO ElevatorPID:UPDATE(TimeNow, PitchAngle() ).
-                }                
-
-
+                ELSE IF VNAVMODE = "ALT" {
+                    SET dAlt to BaroAltitude - TGTAltitude.
+                    SET PitchAngVelPID:SETPOINT TO PitchAnglePID:UPDATE(TimeNow,dAlt).
+                }
+                ELSE IF VNAVMODE = "PIT" {
+                    SET PitchAngVelPID:SETPOINT to TGTPitch.
+                }
+                ELSE IF VNAVMODE = "SPU" {
+                    SET PitchAngVelPID:SETPOINT to ProgradePitchAngle().
+                }
                 
+
+                SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
+                SET Elevator TO ElevatorPID:UPDATE(TimeNow,pitchangvel()).
                 
                 // DEAL WITH LNAV
 
@@ -872,18 +891,6 @@ until SafeToExit {
 
                 Set AileronPID:SETPOINT to BankVelPID:UPDATE(TimeNow,BankAngle()).
                 SET Aileron TO AileronPID:UPDATE(TimeNow, BankAngVel()).
-
-                PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       "at (0,1).
-                PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,2).
-
-                PRINT "T Bank Vel:         " + round(AileronPID:SETPOINT,3) +   "       " At (0,3).
-                PRINT "Bank Vel:           " + ROUND(BankAngVel(),2) +          "       "at (0,4).
-
-                PRINT "Aileron:            " + ROUND(Aileron,2) +  "       "            At (0,5).
-
-                Print "GS Angle:           " + Round(GSProgAng,3)+  "       "            At (0,6).
-
-
 
                 // RESET TRIM
                 SET SHIP:CONTROL:ROLLTRIM TO 0.
@@ -918,7 +925,7 @@ until SafeToExit {
 
             // RCS/Aerosurfaces authority transition and limit
             IF KindOfCraft = "SHUTTLE" {
-                SET CTRLIMIT TO min(1,ROUND(300/AirSPD,2)).
+                SET CTRLIMIT TO min(1,ROUND(500/AirSPD,2)).
                 SET RCS TO BaroAltitude > RCSEnableAlt.
             }
             ELSE {
@@ -958,18 +965,34 @@ until SafeToExit {
             IF AileronPID:MAXOUTPUT <> CTRLIMIT. {
                 SET AileronPID:MAXOUTPUT TO CTRLIMIT.
                 SET AileronPID:MINOUTPUT TO -CTRLIMIT.
-                // set AileronPID:KP to AileronBaseKP * CTRLIMIT.
-                // set AileronPID:KI to AileronBaseKI * CTRLIMIT.
-                // set AileronPID:KD to AileronBaseKD * CTRLIMIT.
             }
 
             // Yaw Damper
-            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT * 0.25 .{
-                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT * 0.25.
-                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT * 0.25.
+            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT * 0.5 .{
+                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT * 0.5.
+                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT * 0.5.
             }
-            SET Rudder TO YawDamperPID:UPDATE(TimeNow, YawError()).
+            SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,YawError()).
+            SET Rudder TO YawDamperPID:UPDATE(TimeNow, yawangvel()).
             SET SHIP:CONTROL:YAW TO Rudder.
+
+                PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       " at (0,1).
+                PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,2).
+
+                PRINT "T Bank Vel:         " + round(AileronPID:SETPOINT,3) +   "       " At (0,3).
+                PRINT "Bank Vel:           " + ROUND(BankAngVel(),2) +          "       " at (0,4).
+
+                PRINT "Aileron:            " + ROUND(Aileron,2) +               "       " At (0,5).
+
+                Print "GS Angle:           " + Round(GSProgAng,3)+              "       " At (0,6).
+
+                Print "Yaw Error:          " + Round(yawerror(),3) +            "       " At (0,8).
+                Print "T Yaw Vel:          " + Round(yawdamperpid:setpoint,3) + "       " At (0,9).
+                Print "Yaw Vel:            " + Round(yawangvel(),3) +           "       " At (0,10).
+
+                Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,10).
+                Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+ "       " At (0,11).
+                Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,12).
 
             // APPLY CONTROLS
             SET SHIP:CONTROL:ROLL TO min(CTRLIMIT,max(-CTRLIMIT,Aileron)). 
