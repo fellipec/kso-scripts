@@ -543,11 +543,11 @@ local ElevatorPID is PIDLOOP(1.0,0.50,0.10,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
-local BankAnglePID is PIDLOOP(2,0.75,0.40,-33,33). 
+local BankAnglePID is PIDLOOP(2,0.75,0.60,-33,33). 
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.015,0.002,0.0001,-0.2,0.2). 
+local BankVelPID is PIDLOOP(0.015,0.004,0.0001,-0.2,0.2). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Aileron  
@@ -603,6 +603,7 @@ local MaxAoA is 20.
 local MaxGAllowed is 7.
 local MaxGProt is False.
 local PitchingDown is 1.
+local PPA is 0.
 local PREVIOUSAP is "".
 local PREVIOUSAT is "".
 local PREVIOUSLNAV is "".
@@ -632,21 +633,32 @@ IF KindOfCraft = "Shuttle" {
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
     SET FLAREALT TO 300.
-    SET PitchAnglePID:MaxOutput to 5.
+    // Pitch 
+    SET GSPID:MAXOutput to -GSAng +25.
+    SET GSPID:MINOutput to -GSAng -25.
+    SET PitchAnglePID:MaxOutput to 15.
     SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
-    SET PitchAnglePID:KP to 0.100.
-    SET PitchAnglePID:KI to 0.040.
-    SET PitchAnglePID:KD to 0.050.
+    SET PitchAnglePID:KP to 0.600.
+    SET PitchAnglePID:KI to 0.080.
+    SET PitchAnglePID:KD to 0.025.
     SET ElevatorPID:KP TO 1.500. 
     SET ElevatorPID:KI TO 0.800. 
     SET ElevatorPID:KD TO 0.050. 
-    SET AileronPID:KP TO 0.20.
-    SET AileronPID:KI TO 0.01.
-    SET AileronPID:KD TO 0.002.
-    SET GSPID:MAXOutput to -GSAng +25.
-    SET GSPID:MINOutput to -GSAng -25.
-    SET BankAnglePID:KP to 1.8.
 
+    //Roll
+    SET AileronPID:KP TO 0.20.
+    SET AileronPID:KI TO 0.07.
+    SET AileronPID:KD TO 0.002.
+    SET BankAnglePID:KP to 2.5.
+    SET BankAnglePID:KI to 1.
+    SET BankAnglePID:KD to 0.75.
+
+    //Yaw Damper
+    SET YawDamperPID:KP to 1.5. 
+    SET YawDamperPID:KI to 0.8.
+    SET YawDamperPID:KD to 0.2.
+
+    //Air engine detection
     LIST Resources IN ShipResources.
     ShuttleWithJets OFF.
     FOR rsr IN ShipResources {
@@ -707,6 +719,7 @@ until SafeToExit {
         set BaroAltitude to ship:altitude.
         set RA to RadarAltimeter().
         set VerticalG to FuncVerticalG().
+        set PPA To ProgradePitchAngle().
 
         IF APATEnabled {
             IF SAS { SAS OFF. }
@@ -754,6 +767,8 @@ until SafeToExit {
                 ELSE SET TGTHeading TO 90 + ((CLDist/ABS(CLDist))*90). // 0 or 180 heading, depending if ship is north or south of runway.
                 SET LNAVMODE TO "HDG". 
 
+                // TODO: Make the bank = 0 until 10.000m
+
                 // //Try to avoid banking while diving
                 // IF BaroAltitude > TGTAltitude + 1000  {
                 //     SET LNAVMODE to "BNK".
@@ -792,14 +807,13 @@ until SafeToExit {
                 IF VNAVMODE <> "PIT" {
                     SET VNAVMODE TO "PIT".
                     SET TGTHeading TO 90.
-                    PitchAnglePID:RESET.
-                    IF KindOfCraft = "Shuttle" SET PitchAnglePID:MAXOUTPUT to 15.
+                    IF kindofcraft <> "SHUTTLE" PitchAnglePID:RESET.
                     SET PitchAnglePID:KP TO PitchAnglePID:KP * 3.
                     SET PitchAnglePID:Ki TO PitchAnglePID:Ki * 2.
-                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 2.
+                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 1.1.
                     SET ElevatorPID:Kp TO ElevatorPID:Kp*2.2.
-                    SET ElevatorPID:Ki to ElevatorPID:Ki*1.2.
-                    SET ElevatorPID:Kd to ElevatorPID:Kd*1.5.
+                    SET ElevatorPID:Ki to ElevatorPID:Ki*1.5.
+                    SET ElevatorPID:Kd to ElevatorPID:Kd*1.1.
                     SET PitchAnglePID:KI to PitchAnglePID:KI*20.
                     SET TGTSpeed TO 70.
 
@@ -862,17 +876,17 @@ until SafeToExit {
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
                     SET GSPID:MAXOutput to -GSAng +25.
                     SET GSPID:MINOutput to -GSAng -25.
-                    SET PitchAngVelPID:SETPOINT to GSPID:UPDATE(TimeNow, GSProgAng).
+                    SET PitchAngVelPID:SETPOINT to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng))).
                 }
                 ELSE IF VNAVMODE = "ALT" {
                     SET dAlt to BaroAltitude - TGTAltitude.
-                    SET PitchAngVelPID:SETPOINT TO PitchAnglePID:UPDATE(TimeNow,dAlt).
+                    SET PitchAngVelPID:SETPOINT TO min(PPA+20,max(PPA-15,PitchAnglePID:UPDATE(TimeNow,dAlt))).
                 }
                 ELSE IF VNAVMODE = "PIT" {
-                    SET PitchAngVelPID:SETPOINT to TGTPitch.
+                    SET PitchAngVelPID:SETPOINT to  min(PPA+30,max(PPA-15,TGTPitch)).
                 }
                 ELSE IF VNAVMODE = "SPU" {
-                    SET PitchAngVelPID:SETPOINT to ProgradePitchAngle().
+                    SET PitchAngVelPID:SETPOINT to PPA.
                 }
                 
 
@@ -928,58 +942,10 @@ until SafeToExit {
                 }
             }
 
-            // RCS/Aerosurfaces authority transition and limit
-            IF KindOfCraft = "SHUTTLE" {
-                SET CTRLIMIT TO min(1,ROUND(500/AirSPD,2)).
-                SET RCS TO BaroAltitude > RCSEnableAlt.
-            }
-            ELSE {
-                SET CTRLIMIT TO min(1,ROUND(250/AirSPD,2)).
-            }
-
-            //Max G detection
-            IF abs(VerticalG) > CONSTANT:G0*MaxGAllowed MaxGProt On.
-
-
-            // Ease pitch controls in high speeds or G loads
-            IF ElevatorPID:MAXOUTPUT <> MIN(1,CTRLIMIT * 1.5) OR MaxGProt {
-                IF MaxGProt and abs(VerticalG) > CONSTANT:G0*MaxGAllowed { 
-                    // MaxG detected once and G still too high, limit elevator to 98% of previous range but limit that to 20% of actuation
-                    SET ElevatorPID:MAXOUTPUT TO MAX(MIN(1,ElevatorPID:MAXOUTPUT * 0.98),0.2).
-                    SET ElevatorPID:MINOUTPUT TO MIN(MAX(-1,ElevatorPID:MINOUTPUT * 0.98),-0.2).
-                    uiDebug("MaxG Exceeded").
-                }
-                ELSE IF MaxGProt and abs(VerticalG) < CONSTANT:G0*MaxGAllowed {
-                    // MaxG detected once and G is now in limits, increase elevator range in 0.5%
-                    IF MIN(1,CTRLIMIT * 1.5) > ElevatorPID:MAXOUTPUT * 1.005 {
-                        SET ElevatorPID:MAXOUTPUT TO MIN(1,ElevatorPID:MAXOUTPUT * 1.005).
-                        SET ElevatorPID:MINOUTPUT TO MAX(-1,ElevatorPID:MINOUTPUT * 1.005).
-                    }
-                    ELSE {
-                        MaxGProt Off. 
-                        uiDebug("MaxG Off").
-                    }                   
-                }                
-                ELSE {
-                    SET ElevatorPID:MAXOUTPUT TO MIN(1,CTRLIMIT * 1.7) .
-                    SET ElevatorPID:MINOUTPUT TO MAX (-1,-CTRLIMIT * 1.7) .
-                }
-            }
-
-            // Ease aileron controls in high speeds
-            IF AileronPID:MAXOUTPUT <> CTRLIMIT. {
-                SET AileronPID:MAXOUTPUT TO CTRLIMIT.
-                SET AileronPID:MINOUTPUT TO -CTRLIMIT.
-            }
-
             // Yaw Damper
-            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT .{
-                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT .
-                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT .
-            }
             SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,YawError()).
             SET Rudder TO YawDamperPID:UPDATE(TimeNow, yawangvel()).
-            SET SHIP:CONTROL:YAW TO Rudder.
+           
 
                 PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       " at (0,1).
                 PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,2).
@@ -1000,8 +966,9 @@ until SafeToExit {
                 Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,12).
 
             // APPLY CONTROLS
-            SET SHIP:CONTROL:ROLL TO min(CTRLIMIT,max(-CTRLIMIT,Aileron)). 
-            SET SHIP:CONTROL:PITCH TO min(CTRLIMIT,max(-CTRLIMIT,Elevator)).
+            SET SHIP:CONTROL:ROLL TO Aileron. 
+            SET SHIP:CONTROL:PITCH TO Elevator.
+            SET SHIP:CONTROL:YAW TO Rudder.
 
             // ************
             // AUTOTHROTTLE
@@ -1040,6 +1007,8 @@ until SafeToExit {
             ELSE {
                 IF GEAR GEAR OFF. 
             }
+            // RCS Controls.
+            SET RCS TO BaroAltitude > RCSEnableAlt.
 
         }
         ELSE { 
