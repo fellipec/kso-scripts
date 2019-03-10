@@ -527,7 +527,7 @@ ON ABORT {
 
 
 // PID GS
-local GSPID is PIDLOOP(0.6,0.20,0.10,-30,30). 
+local GSPID is PIDLOOP(0.6,0.10,0.10,-30,30). 
 SET GSPID:SETPOINT TO 0.
 
 // PID Pitch Angle
@@ -547,7 +547,7 @@ local BankAnglePID is PIDLOOP(2,0.75,0.60,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.015,0.004,0.0001,-0.2,0.2). 
+local BankVelPID is PIDLOOP(0.0300,0.0005,0.0010,-0.25,0.25). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Aileron  
@@ -609,7 +609,7 @@ local PREVIOUSAT is "".
 local PREVIOUSLNAV is "".
 local PREVIOUSVNAV is "".
 local RA is RadarAltimeter().
-local RCSEnableAlt is 10000.
+local RCSEnableAlt is 12500.
 local ShipStatus is Ship:Status.
 local ShipResources is "".
 local ShuttleWithJets is False.
@@ -638,25 +638,28 @@ IF KindOfCraft = "Shuttle" {
     SET GSPID:MINOutput to -GSAng -25.
     SET PitchAnglePID:MaxOutput to 15.
     SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
-    SET PitchAnglePID:KP to 0.600.
+    SET PitchAnglePID:KP to 0.900.
     SET PitchAnglePID:KI to 0.080.
-    SET PitchAnglePID:KD to 0.025.
+    SET PitchAnglePID:KD to 0.010.
     SET ElevatorPID:KP TO 1.500. 
-    SET ElevatorPID:KI TO 0.800. 
+    SET ElevatorPID:KI TO 0.300. 
     SET ElevatorPID:KD TO 0.050. 
 
     //Roll
     SET AileronPID:KP TO 0.20.
-    SET AileronPID:KI TO 0.07.
-    SET AileronPID:KD TO 0.002.
-    SET BankAnglePID:KP to 2.5.
-    SET BankAnglePID:KI to 1.
-    SET BankAnglePID:KD to 0.75.
+    SET AileronPID:KI TO 0.01.
+    SET AileronPID:KD TO 0.05.
+    SET BankAnglePID:KP to 4.0.
+    SET BankAnglePID:KI to 0.5.
+    SET BankAnglePID:KD to 0.5.
 
     //Yaw Damper
-    SET YawDamperPID:KP to 1.5. 
-    SET YawDamperPID:KI to 0.8.
-    SET YawDamperPID:KD to 0.2.
+    SET YawDamperPID:KP to 1.50. 
+    SET YawDamperPID:KI to 0.3.
+    SET YawDamperPID:KD to 0.1.
+    SET YawVelPID:KP to 0.050. 
+    SET YawVelPID:KI to 0.010.
+    SET YawVelPID:KD to 0.015.
 
     //Air engine detection
     LIST Resources IN ShipResources.
@@ -736,7 +739,6 @@ until SafeToExit {
                     IF KindOfCraft = "SHUTTLE" { 
                         SET TGTPitch TO -GSAng/4. 
                         SET VNAVMODE TO "PIT".
-                        SET PitchAnglePID:MAXOUTPUT to -5.
                     }
                     ELSE { 
                         SET TGTAltitude TO (BaroAltitude + TGTAltitude) / 2.
@@ -767,13 +769,6 @@ until SafeToExit {
                 ELSE SET TGTHeading TO 90 + ((CLDist/ABS(CLDist))*90). // 0 or 180 heading, depending if ship is north or south of runway.
                 SET LNAVMODE TO "HDG". 
 
-                // TODO: Make the bank = 0 until 10.000m
-
-                // //Try to avoid banking while diving
-                // IF BaroAltitude > TGTAltitude + 1000  {
-                //     SET LNAVMODE to "BNK".
-                //     SET TGTBank to 0.
-                // }
 
                 // Checks for excessive airspeed on final. 
                 IF KindOfCraft = "Plane" {
@@ -807,14 +802,18 @@ until SafeToExit {
                 IF VNAVMODE <> "PIT" {
                     SET VNAVMODE TO "PIT".
                     SET TGTHeading TO 90.
-                    IF kindofcraft <> "SHUTTLE" PitchAnglePID:RESET.
-                    SET PitchAnglePID:KP TO PitchAnglePID:KP * 3.
-                    SET PitchAnglePID:Ki TO PitchAnglePID:Ki * 2.
-                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 1.1.
-                    SET ElevatorPID:Kp TO ElevatorPID:Kp*2.2.
-                    SET ElevatorPID:Ki to ElevatorPID:Ki*1.5.
-                    SET ElevatorPID:Kd to ElevatorPID:Kd*1.1.
-                    SET PitchAnglePID:KI to PitchAnglePID:KI*20.
+                    IF kindofcraft = "SHUTTLE" {
+                    }
+                    ELSE {
+                        PitchAnglePID:RESET.
+                    }
+                    SET PitchAnglePID:KP TO PitchAnglePID:KP * 5.
+                    SET PitchAnglePID:Ki TO PitchAnglePID:Ki * 5.
+                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 2.
+                    SET ElevatorPID:Kp TO ElevatorPID:Kp * 2.5.
+                    SET ElevatorPID:Ki to ElevatorPID:Ki * 1.2.
+                    SET ElevatorPID:Kd to ElevatorPID:Kd * 1.1.
+                    // SET PitchAnglePID:KI to PitchAnglePID:KI*20.
                     SET TGTSpeed TO 70.
 
                 }           
@@ -964,6 +963,28 @@ until SafeToExit {
                 Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,10).
                 Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+ "       " At (0,11).
                 Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,12).
+
+                // LOG TimeNow + ";" +
+                //     pitchangvelpid:Setpoint + ";" + 
+                //     PitchAngle() + ";" +
+                //     ElevatorPID:setpoint + ";" +
+                //     pitchangvel() +";" +
+                //     Elevator TO "0:/PITCH.CSV".
+
+
+                // LOG TimeNow + ";" +
+                //     BankVelPID:Setpoint + ";" + 
+                //     BankAngle() + ";" +
+                //     AileronPID:setpoint + ";" +
+                //     BankAngVel() +";" +
+                //     Aileron TO "0:/ROLL.CSV".
+
+                // LOG TimeNow + ";0;" +
+                //     yawerror() + ";" +
+                //     yawdamperpid:setpoint + ";" +
+                //     yawangvel() +";" +
+                //     Rudder TO "0:/YAW.CSV".
+
 
             // APPLY CONTROLS
             SET SHIP:CONTROL:ROLL TO Aileron. 

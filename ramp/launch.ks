@@ -6,6 +6,8 @@
 parameter Apo is 200000.
 parameter hdg is 90.
 
+WAIT UNTIL KUniverse:CANQUICKSAVE.
+KUniverse:QUICKSAVETO("RAMP-Before Launch").
 
 if KUniverse:ORIGINEDITOR = "SPH" or Ship:Name:Contains("SSTO") {
     runpath("launch_ssto",apo,hdg).

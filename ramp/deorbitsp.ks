@@ -5,6 +5,8 @@ runoncepath("lib_ui").
 runoncepath("lib_parts").
 runoncepath("lib_util").
 SAS OFF.
+SET SteeringManager:ROLLCONTROLANGLERANGE to 180. //Make the cooked controls work better with space planes.
+
 
 FUNCTION LngToDegrees { 
     //From youtube.com/cheerskevin
@@ -59,47 +61,50 @@ SAS OFF.
 SET ORBITOK TO FALSE.
 SET INCOK TO FALSE.
 
-UNTIL ORBITOK AND INCOK {
+IF ship:status = "ORBITING" {
 
-    // Check if orbit is acceptable and correct if needed.
+    UNTIL ORBITOK AND INCOK {
 
-    IF NOT (OBT:INCLINATION < (Deorbit_Inc + 0.1) AND 
-            OBT:INCLINATION > (Deorbit_Inc - 0.1)) {
-                uiBanner("Deorbit","Changing inclination from " + round(OBT:INCLINATION,2) + 
-                "º to " + round(Deorbit_Inc,2) + "º").
-                RUNPATH("node_inc_equ",Deorbit_Inc).
-                RUNPATH("node").
-            }
-    ELSE { SET INCOK TO TRUE.}
+        // Check if orbit is acceptable and correct if needed.
 
-    IF NOT (OBT:APOAPSIS < (Deorbit_Alt + Deorbit_Alt*0.05) AND 
-            OBT:APOAPSIS > (Deorbit_Alt - Deorbit_Alt*0.05) AND
-            OBT:eccentricity < 0.1 ) {
-                uiBanner("Deorbit","Establishing a new orbit at " + round(Deorbit_Alt/1000) + "km" ).
-                RUNPATH("circ_alt",Deorbit_Alt).
+        IF NOT (OBT:INCLINATION < (Deorbit_Inc + 0.1) AND 
+                OBT:INCLINATION > (Deorbit_Inc - 0.1)) {
+                    uiBanner("Deorbit","Changing inclination from " + round(OBT:INCLINATION,2) + 
+                    "º to " + round(Deorbit_Inc,2) + "º").
+                    RUNPATH("node_inc_equ",Deorbit_Inc).
+                    RUNPATH("node").
+                }
+        ELSE { SET INCOK TO TRUE.}
+
+        IF NOT (OBT:APOAPSIS < (Deorbit_Alt + Deorbit_Alt*0.05) AND 
+                OBT:APOAPSIS > (Deorbit_Alt - Deorbit_Alt*0.05) AND
+                OBT:eccentricity < 0.1 ) {
+                    uiBanner("Deorbit","Establishing a new orbit at " + round(Deorbit_Alt/1000) + "km" ).
+                    RUNPATH("circ_alt",Deorbit_Alt).
+        }
+        ELSE { SET ORBITOK TO TRUE. }
+
     }
-    ELSE { SET ORBITOK TO TRUE. }
+    UNLOCK STEERING. UNLOCK THROTTLE. WAIT 5.
 
+    // Add Deorbit maneuver node.
+    uiBanner("Deorbit","Doing the deorbit burn").
+    LOCAL nd IS NODE(time:seconds + TimeToLong(Deorbit_Long), 0, 0, Deorbit_dV).
+    WAIT UNTIL KUniverse:CANQUICKSAVE.
+    KUniverse:QUICKSAVETO("RAMP-Before Reenter").
+    ADD nd. RUN NODE.
+
+    // Configure the ship to reenter.
+    PANELS OFF.
+    BAYS OFF.
+    GEAR OFF.
+    LADDERS OFF.
+    SAS OFF.
+    RCS ON.
+    partsDisarmsChutes().
+    partsRetractAntennas().
+    partsRetractRadiators().
 }
-UNLOCK STEERING. UNLOCK THROTTLE. WAIT 5.
-
-// Add Deorbit maneuver node.
-uiBanner("Deorbit","Doing the deorbit burn").
-LOCAL nd IS NODE(time:seconds + TimeToLong(Deorbit_Long), 0, 0, Deorbit_dV).
-WAIT UNTIL KUniverse:CANQUICKSAVE.
-KUniverse:QUICKSAVETO("RAMP-Before Reenter").
-ADD nd. RUN NODE.
-
-// Configure the ship to reenter.
-PANELS OFF.
-BAYS OFF.
-GEAR OFF.
-LADDERS OFF.
-SAS OFF.
-RCS ON.
-partsDisarmsChutes().
-partsRetractAntennas().
-partsRetractRadiators().
 
 LOCK THROTTLE TO 0.
 uiBanner("Deorbit","Holding 40º Pitch until ready for atmospheric flight").
