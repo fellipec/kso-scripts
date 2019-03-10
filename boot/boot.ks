@@ -14,7 +14,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 //Print info
-set Config:IPU to 350. 
+set Config:IPU to 500. 
 CLEARSCREEN.
 print "kOS processor version " + core:version.
 print "Running on " + core:element:name.

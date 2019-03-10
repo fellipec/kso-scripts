@@ -14,7 +14,7 @@ CLEARVECDRAWS().
 CLEARGUIS().
 
 local OldIPU is Config:IPU.
-if OldIPU < 300 set Config:IPU to 300. 
+if OldIPU < 500 set Config:IPU to 500. 
 
 Local CONSOLEINFO is FALSE.
 uiDebug("CONSOLE OUTPUT IS " + CONSOLEINFO).
@@ -521,21 +521,34 @@ ON ABORT {
 // ////////////////
 // Arguments = Kp, Ki, Kd, MinOutput, MaxOutput
 
-//PID Elevator 
-local ElevatorPID is PIDLOOP(1.0,0.50,0.10,-1,1).
-SET ElevatorPID:SETPOINT TO 0. 
+
+//PITCH
+
+
 
 // PID GS
 local GSPID is PIDLOOP(0.6,0.20,0.10,-30,30). 
 SET GSPID:SETPOINT TO 0.
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(0.050,0.020,0.010,-20,20). 
+local PitchAnglePID is PIDLOOP(0.075,0.035,0.020,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 // PID PitchAngVel
-local PitchAngVelPID is PIDLOOP(0.025,0.005,0.001,-0.25,0.25). 
+local PitchAngVelPID is PIDLOOP(0.015,0.002,0.0005,-0.25,0.25). 
 SET PitchAngVelPID:SETPOINT TO 0. 
+
+//PID Elevator 
+local ElevatorPID is PIDLOOP(1.0,0.50,0.10,-1,1).
+SET ElevatorPID:SETPOINT TO 0. 
+
+// PID BankAngle
+local BankAnglePID is PIDLOOP(2,0.75,0.40,-33,33). 
+SET BankAnglePID:SETPOINT TO 0. 
+
+// PID BankVel
+local BankVelPID is PIDLOOP(0.015,0.002,0.0001,-0.2,0.2). 
+SET BankVelPID:SETPOINT TO 0. 
 
 //PID Aileron  
 local AileronPID is PIDLOOP(0.1,0.005,0.001,-1,1). 
@@ -548,14 +561,6 @@ SET YawDamperPID:SETPOINT TO 0.
 // PID YawVel
 local YawVelPID is PIDLOOP(0.04,0.02,0.01,-0.2,0.2). 
 SET YawVelPID:SETPOINT TO 0. 
-
-// PID BankAngle
-local BankAnglePID is PIDLOOP(2,0.1,0.3,-33,33). 
-SET BankAnglePID:SETPOINT TO 0. 
-
-// PID BankVel
-local BankVelPID is PIDLOOP(0.04,0.02,0.001,-0.2,0.2). 
-SET BankVelPID:SETPOINT TO 0. 
 
 //PID Throttle
 //local ThrottlePID is PIDLOOP(0.01,0.006,0.016,0,1). 
@@ -630,14 +635,14 @@ IF KindOfCraft = "Shuttle" {
     SET PitchAnglePID:MaxOutput to 5.
     SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
     SET PitchAnglePID:KP to 0.100.
-    SET PitchAnglePID:KI to 0.010.
+    SET PitchAnglePID:KI to 0.040.
     SET PitchAnglePID:KD to 0.050.
-    SET ElevatorPID:KP TO 0.020. 
-    SET ElevatorPID:KI TO 0.010. 
-    SET ElevatorPID:KD TO 0.010. 
-    SET AileronPID:KP TO 0.40.
-    SET AileronPID:KI TO 0.10.
-    SET AileronPID:KD TO 0.15.
+    SET ElevatorPID:KP TO 1.500. 
+    SET ElevatorPID:KI TO 0.800. 
+    SET ElevatorPID:KD TO 0.050. 
+    SET AileronPID:KP TO 0.20.
+    SET AileronPID:KI TO 0.01.
+    SET AileronPID:KD TO 0.002.
     SET GSPID:MAXOutput to -GSAng +25.
     SET GSPID:MINOutput to -GSAng -25.
     SET BankAnglePID:KP to 1.8.
@@ -968,9 +973,9 @@ until SafeToExit {
             }
 
             // Yaw Damper
-            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT * 0.5 .{
-                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT * 0.5.
-                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT * 0.5.
+            IF YawDamperPID:MAXOUTPUT <> CTRLIMIT .{
+                SET YawDamperPID:MAXOUTPUT TO CTRLIMIT .
+                SET YawDamperPID:MINOUTPUT TO -CTRLIMIT .
             }
             SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,YawError()).
             SET Rudder TO YawDamperPID:UPDATE(TimeNow, yawangvel()).
@@ -1085,7 +1090,7 @@ until SafeToExit {
             SET LabelHDG:TEXT  TO "<b>" + ROUND(TGTHeading,2):TOSTRING + "º</b>".
             SET LabelALT:TEXT  TO "<b>" + ROUND(TGTAltitude,2):TOSTRING + " m</b>".
             SET LabelBNK:TEXT TO  "<b>" + ROUND(BankVelPID:Setpoint,2) + "º</b>".
-            SET LabelPIT:TEXT TO  "<b>" + ROUND(ElevatorPID:SETPOINT,2) + "º</b>".
+            SET LabelPIT:TEXT TO  "<b>" + ROUND(PitchAngVelPID:SETPOINT,2) + "º</b>".
             SET LabelSPD:TEXT TO  "<b>" + ROUND(TGTSpeed) + " m/s | " + ROUND(uiMSTOKMH(TGTSpeed),2) + " km/h</b>".
         }
         SET labelAirspeed:text to "<b>Airspeed:</b> " + ROUND(uiMSTOKMH(AirSPD)) + " km/h" +
