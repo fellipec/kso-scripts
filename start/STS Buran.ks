@@ -36,5 +36,5 @@ ELSE IF ship:status = "ORBITING" {
 	}
 }
 ELSE IF SHIP:STATUS = "FLYING" {
-	run deorbitsp(-1.5,15).
+	run deorbitsp(-7,15).
 }

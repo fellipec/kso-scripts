@@ -7,6 +7,7 @@ runoncepath("lib_util").
 SAS OFF.
 SET SteeringManager:ROLLCONTROLANGLERANGE to 180. //Make the cooked controls work better with space planes.
 
+local DeorbitSPKSCRW09 is latlng(-0.04807,-74.82).
 
 FUNCTION LngToDegrees { 
     //From youtube.com/cheerskevin
@@ -116,8 +117,9 @@ WAIT UNTIL SHIP:ALTITUDE < 71000.
 KUNIVERSE:TIMEWARP:CANCELWARP().
 WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope) OR ship:airspeed < 340.
 uiBanner("Deorbit","Preparing for atmospheric flight...").
-LOCK STEERING TO HEADING(90,-Slope).
-WAIT 5.
+//LOCK STEERING TO HEADING(90,-Slope-5).
+LOCK STEERING TO LOOKDIRUP(DeorbitSPKSCRW09:POSITION(),SHIP:UP:VECTOR).
+WAIT UNTIL SHIP:ALTITUDE < 15000 OR SHIP:VELOCITY:SURFACE:MAG < 900.
 uiBanner("Deorbit","Activating atmospheric autopilot...").
 UNLOCK THROTTLE.
 UNLOCK STEERING.

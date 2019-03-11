@@ -527,7 +527,7 @@ ON ABORT {
 
 
 // PID GS
-local GSPID is PIDLOOP(0.6,0.10,0.10,-30,30). 
+local GSPID is PIDLOOP(2.5,0.50,0.10,-30,30). 
 SET GSPID:SETPOINT TO 0.
 
 // PID LOC
@@ -739,24 +739,9 @@ until SafeToExit {
             // ********
 
             ELSE IF APMODE = "ILS" {
-                SET TargetCoord TO TGTRunway.
-                //Checks if below GS
+                SET TargetCoord TO TGTRunway.                
                 SET TGTAltitude to Glideslope(TGTRunway,GSAng).
-                IF (NOT GSLocked) AND (BaroAltitude < TGTAltitude) {                
-                    IF KindOfCraft = "SHUTTLE" { 
-                        SET TGTPitch TO -GSAng/4. 
-                        SET VNAVMODE TO "PIT".
-                    }
-                    ELSE { 
-                        SET TGTAltitude TO (BaroAltitude + TGTAltitude) / 2.
-                        SET VNAVMODE TO "ALT".
-                    } 
-                }
-                ELSE {
-                    SET VNAVMODE TO "ALT".
-                    GSLocked ON.
-                }
-                IF KindOfCraft = "SHUTTLE" and GSLocked {
+                IF KindOfCraft = "SHUTTLE" {
                     local GSProgAngSignal is 1.
                     IF VDOT(SHIP:UP:VECTOR,vxcl(ship:facing:starvector,ship:velocity:surface):normalized) < VDOT(SHIP:UP:VECTOR,TGTRunway:Position:normalized) {
                         SET GSProgAngSignal TO -1.
@@ -764,6 +749,28 @@ until SafeToExit {
                     set GSProgAng to VANG(TGTRunway:Position,vxcl(ship:facing:starvector,ship:velocity:surface)) * GSProgAngSignal.
                     SET VNAVMODE TO "GS".
                     //uiDebug(GSProgAngSignal*GSProgAng).
+                    
+                    // clearvecdraws().
+                    // LOCAL TGTVEC IS VECDRAW(V(0,0,0),TGTRunway:POSITION(),magenta,"",1,true,30).
+                    // LOCAL PROVEC IS VECDRAW(V(0,0,0),SHIP:VELOCITY:SURFACE,CYAN,"",1,true,30).
+
+                }
+                else {
+                    //Checks if below GS
+                    IF (NOT GSLocked) AND (BaroAltitude < TGTAltitude) {                
+                        IF KindOfCraft = "SHUTTLE" { 
+                            SET TGTPitch TO -GSAng/4. 
+                            SET VNAVMODE TO "PIT".
+                        }
+                        ELSE { 
+                            SET TGTAltitude TO (BaroAltitude + TGTAltitude) / 2.
+                            SET VNAVMODE TO "ALT".
+                        } 
+                    }
+                    ELSE {
+                        SET VNAVMODE TO "ALT".
+                        GSLocked ON.
+                    }
                 }
 
 
@@ -890,7 +897,7 @@ until SafeToExit {
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
                     SET GSPID:MAXOutput to -GSAng +25.
                     SET GSPID:MINOutput to -GSAng -25.
-                    SET PitchAngVelPID:SETPOINT to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng))).
+                    SET PitchAngVelPID:SETPOINT to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng+1))).
                 }
                 ELSE IF VNAVMODE = "ALT" {
                     SET dAlt to BaroAltitude - TGTAltitude.
