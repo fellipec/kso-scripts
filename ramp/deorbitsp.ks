@@ -44,7 +44,7 @@ FUNCTION deorbitspGlideslope{
     //Returns the altitude of the glideslope
     PARAMETER GSAngle IS 20.
     PARAMETER Threshold IS latlng(-0.04807,-74.82).
-    PARAMETER Offset is -2500. // So we move to fly program under the slope
+    PARAMETER Offset is -4000. // So we move to fly program under the slope
     LOCAL KerbinAngle is abs(ship:geoposition:lng) - abs(Threshold:lng).
     LOCAL Correction IS SQRT( (KERBIN:RADIUS^2) + (TAN(KerbinAngle)*KERBIN:RADIUS)^2 ) - KERBIN:Radius. // Why this correction? https://imgur.com/a/CPHnD
     RETURN (tan(GSAngle) * deorbitspGroundDistance(Threshold)) + Threshold:terrainheight + Correction + Offset.

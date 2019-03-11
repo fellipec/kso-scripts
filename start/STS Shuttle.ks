@@ -36,7 +36,7 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-1.2,25).
+		run deorbitsp(-1,20).
 	}
 	else if choice = "R" {
 		REBOOT.

@@ -527,11 +527,11 @@ ON ABORT {
 
 
 // PID GS
-local GSPID is PIDLOOP(2.5,0.50,0.10,-30,30). 
+local GSPID is PIDLOOP(3,0.40,0.10,-30,30). 
 SET GSPID:SETPOINT TO 0.
 
 // PID LOC
-local LOCPID is PIDLOOP(0.06,0.005,0.001,-20,20). 
+local LOCPID is PIDLOOP(0.8,0.10,0.05,-35,35). 
 SET LOCPID:SETPOINT TO 0.
 
 // PID Pitch Angle
@@ -639,30 +639,30 @@ IF KindOfCraft = "Shuttle" {
     SET TGTRunway TO RWYKSC_SHUTTLE.
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
-    SET FLAREALT TO 400.
+    SET FLAREALT TO 300.
     // Pitch 
     SET GSPID:MAXOutput to -GSAng +25.
     SET GSPID:MINOutput to -GSAng -25.
     SET PitchAnglePID:MaxOutput to 15.
     SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
-    SET PitchAnglePID:KP to 2.000.
-    SET PitchAnglePID:KI to 1.000.
+    SET PitchAnglePID:KP to 4.000.
+    SET PitchAnglePID:KI to 0.500.
     SET PitchAnglePID:KD to 0.100.
-    SET ElevatorPID:KP TO 1.500. 
+    SET ElevatorPID:KP TO 1.000. 
     SET ElevatorPID:KI TO 0.300. 
     SET ElevatorPID:KD TO 0.050. 
 
     //Roll
-    SET AileronPID:KP TO 0.25.
+    SET AileronPID:KP TO 0.15.
     SET AileronPID:KI TO 0.01.
     SET AileronPID:KD TO 0.05.
-    SET BankAnglePID:KP to 5.0.
-    SET BankAnglePID:KI to 0.75.
-    SET BankAnglePID:KD to 0.25.
+    SET BankAnglePID:KP to 3.0.
+    SET BankAnglePID:KI to 0.25.
+    SET BankAnglePID:KD to 0.15.
 
     //Yaw Damper
-    SET YawDamperPID:KP to 1.30. 
-    SET YawDamperPID:KI to 0.5.
+    SET YawDamperPID:KP to 0.80. 
+    SET YawDamperPID:KI to 0.1.
     SET YawDamperPID:KD to 0.25.
     SET YawVelPID:KP to 0.050. 
     SET YawVelPID:KI to 0.005.
@@ -706,10 +706,11 @@ local ILSVEC is 0.
 
 partsDisarmsChutes(). //We don't want any chute deploing while flying, right?
 local AirSPD is ship:airspeed.
-local TimeNow is Time:seconds.
+local t0 is Time:Seconds.
+local TimeNow is Time:seconds - t0.
 local BaroAltitude is ship:altitude.
 local SafeToExit is false.
-local VerticalG is FuncVerticalG().
+local FlareAltMSL is flarealt + tgtrunway:terrainheight().
 
 until SafeToExit {
 
@@ -725,10 +726,9 @@ until SafeToExit {
         wait 0. // Skip a physics tick 
 
         set AirSPD to ship:airspeed.
-        set TimeNow to Time:seconds.
+        set TimeNow to Time:seconds -t0.
         set BaroAltitude to ship:altitude.
         set RA to RadarAltimeter().
-        set VerticalG to FuncVerticalG().
         set PPA To ProgradePitchAngle().
 
         IF APATEnabled {
@@ -743,7 +743,7 @@ until SafeToExit {
                 SET TGTAltitude to Glideslope(TGTRunway,GSAng).
                 IF KindOfCraft = "SHUTTLE" {
                     local GSProgAngSignal is 1.
-                    IF VDOT(SHIP:UP:VECTOR,vxcl(ship:facing:starvector,ship:velocity:surface):normalized) < VDOT(SHIP:UP:VECTOR,TGTRunway:Position:normalized) {
+                    IF VDOT(SHIP:UP:VECTOR,vxcl(ship:facing:starvector,ship:velocity:surface):normalized) < VDOT(SHIP:UP:VECTOR,TGTRunway:AltitudePosition(FlareAltMSL):normalized) {
                         SET GSProgAngSignal TO -1.
                     }
                     set GSProgAng to VANG(TGTRunway:Position,vxcl(ship:facing:starvector,ship:velocity:surface)) * GSProgAngSignal.
@@ -779,7 +779,7 @@ until SafeToExit {
                 local AllowedDeviation is GDist * sin(0.3).
                 SET CLDist TO CenterLineDistance(TGTRunway).
                 IF ABS(CLDist) < AllowedDeviation {
-                    SET LNAVMODE TO "LOC".
+                    SET LNAVMODE TO "HDG".
                     SET TGTHeading to 90.
                 } 
                 ELSE IF abs(CLDist) < GDist/3 {
@@ -829,10 +829,10 @@ until SafeToExit {
                     ELSE {
                         PitchAnglePID:RESET.
                     }
-                    SET PitchAnglePID:KP TO PitchAnglePID:KP * 8.
-                    SET PitchAnglePID:Ki TO PitchAnglePID:Ki * 20.
-                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 2.
-                    SET ElevatorPID:Kp TO ElevatorPID:Kp * 5.0.
+                    SET PitchAnglePID:KP TO PitchAnglePID:KP * 1.
+                    SET PitchAnglePID:Ki TO PitchAnglePID:Ki * 0.5.
+                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 1.
+                    SET ElevatorPID:Kp TO ElevatorPID:Kp * 3.0.
                     SET ElevatorPID:Ki to ElevatorPID:Ki * 1.5.
                     SET ElevatorPID:Kd to ElevatorPID:Kd * 1.1.
                     // SET PitchAnglePID:KI to PitchAnglePID:KI*20.
@@ -932,7 +932,7 @@ until SafeToExit {
                 }
                 ELSE IF LNAVMODE = "LOC"{
                     SET TGTBank to LOCPID:Update(TimeNow,CLDist).
-                    SET BankVelPID:SETPOINT to LOCPID:UPDATE(TimeNow,TGTBank).
+                    SET BankVelPID:SETPOINT to TGTBank.
                 }
 
                 Set AileronPID:SETPOINT to BankVelPID:UPDATE(TimeNow,BankAngle()).
@@ -997,25 +997,8 @@ until SafeToExit {
                 Print "Center Line Dist:   " + Round(CLDist,3) +                "       " At (0,16).
 
                 // LOG TimeNow + ";" +
-                //     pitchangvelpid:Setpoint + ";" + 
-                //     PitchAngle() + ";" +
-                //     ElevatorPID:setpoint + ";" +
-                //     pitchangvel() +";" +
-                //     Elevator TO "1:/PITCH.CSV".
-
-
-                // LOG TimeNow + ";" +
-                //     BankVelPID:Setpoint + ";" + 
-                //     BankAngle() + ";" +
-                //     AileronPID:setpoint + ";" +
-                //     BankAngVel() +";" +
-                //     Aileron TO "1:/ROLL.CSV".
-
-                // LOG TimeNow + ";0;" +
-                //     yawerror() + ";" +
-                //     yawdamperpid:setpoint + ";" +
-                //     yawangvel() +";" +
-                //     Rudder TO "1:/YAW.CSV".
+                //     GSPID:input + ";" +
+                //     GSPID:output TO "0:/PID.CSV".
 
 
             // APPLY CONTROLS
