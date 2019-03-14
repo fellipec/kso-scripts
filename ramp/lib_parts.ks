@@ -36,7 +36,7 @@ FUNCTION partsEnableReactionWheels {
         IF P:MODULES:CONTAINS("ModuleReactionWheel") {
             LOCAL M IS P:GETMODULE("ModuleReactionWheel").
             FOR A IN M:ALLACTIONNAMES() {
-                IF A:CONTAINS("activate") { M:DOACTION(A,True). }
+                IF A:CONTAINS("activate") AND NOT A:CONTAINS("deactivate") { M:DOACTION(A,True). }
             }.
         }
     }.

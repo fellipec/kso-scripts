@@ -535,11 +535,11 @@ local LOCPID is PIDLOOP(0.8,0.10,0.05,-35,35).
 SET LOCPID:SETPOINT TO 0.
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(3.00,0.50,0.25,-20,20). 
+local PitchAnglePID is PIDLOOP(3.50,0.50,0.25,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 // PID PitchAngVel
-local PitchAngVelPID is PIDLOOP(0.015,0.002,0.0005,-0.25,0.25). 
+local PitchAngVelPID is PIDLOOP(0.015,0.002,0.0005,-0.35,0.35). 
 SET PitchAngVelPID:SETPOINT TO 0. 
 
 // PID VSpeed
@@ -547,7 +547,7 @@ local VSpeedPID is PIDLOOP(0.50,0.20,0.10,-20,20).
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.0,0.50,0.10,-1,1).
+local ElevatorPID is PIDLOOP(1.0,0.15,0.005,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -555,7 +555,7 @@ local BankAnglePID is PIDLOOP(3.0,0.75,0.60,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.0400,0.0008,0.0010,-0.25,0.25). 
+local BankVelPID is PIDLOOP(0.0400,0.0008,0.0010,-0.5,0.5). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Aileron  
@@ -574,15 +574,10 @@ SET YawVelPID:SETPOINT TO 0.
 local ThrottlePID is PIDLOOP(0.01,0.006,0.036,0,1). 
 SET ThrottlePID:SETPOINT TO 0. 
 
-//Autotrim parameters
-local ElevatorTrimSum is 0.
-local ElevatorTrimCnt is 0.
-
 //Control surface variables
 local Elevator is 0.
 local Aileron is 0.
 local Rudder is 0.
-local ElevatorTrim is 0.
 
 //Runways coordinates
 global RWYKSC is latlng(-0.04807,-74.65).
@@ -596,7 +591,6 @@ local APSHUTDOWN is FALSE.
 local ATMODE is "SPD".
 local AUTOTHROTTLE is TRUE.
 local CLDist is 0.
-local CTRLIMIT is 1.
 local dAlt is 0.
 local dHeading is 0.
 local FLAREALT is 150.
@@ -606,6 +600,8 @@ local GSLocked is False.
 local HasTermometer is partsHasTermometer().
 local ILSHOLDALT is 0.
 local LNAVMODE is "HDG".
+local ManModePitchT0 is 0.
+local ManModeRollT0 is 0.
 local MaxAoA is 20.
 local MaxGAllowed is 7.
 local MaxGProt is False.
@@ -829,13 +825,13 @@ until SafeToExit {
                     ELSE {
                         PitchAnglePID:RESET.
                     }
-                    SET PitchAnglePID:KP TO PitchAnglePID:KP * 1.
-                    SET PitchAnglePID:Ki TO PitchAnglePID:Ki * 0.5.
-                    SET PitchAnglePID:Kd TO PitchAnglePID:Kd * 1.
-                    SET ElevatorPID:Kp TO ElevatorPID:Kp * 3.0.
-                    SET ElevatorPID:Ki to ElevatorPID:Ki * 1.5.
-                    SET ElevatorPID:Kd to ElevatorPID:Kd * 1.1.
-                    // SET PitchAnglePID:KI to PitchAnglePID:KI*20.
+                    SET PitchAnglePID:KP TO 10.
+                    SET PitchAnglePID:Ki TO 4.
+                    SET PitchAnglePID:Kd TO 1.
+                    SET ElevatorPID:Kp TO ElevatorPID:Kp * 1.2.
+                    SET ElevatorPID:Ki to ElevatorPID:Ki * 1.0.
+                    SET ElevatorPID:Kd to ElevatorPID:Kd * 1.0.
+                    SET PitchAnglePID:SETPOINT to 0.
                     SET TGTSpeed TO 70.
 
                 }           
@@ -852,7 +848,7 @@ until SafeToExit {
                 }
                 ELSE {
                     //SET TGTPitch TO 2.
-                    SET TGTPitch to MAX(0,MIN(5,PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 1))).
+                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 1).
                     IF BRAKES {BRAKES OFF.}
                     SET LNAVMODE TO "BNK".
                     SET TGTBank TO 0.
@@ -868,21 +864,30 @@ until SafeToExit {
 
             ELSE IF APMODE = "OFF" {
                 IF SHIP:CONTROL:PILOTPITCH <> 0 {
-                    SET Elevator TO SHIP:CONTROL:PILOTPITCH.
-                    SET ElevatorPID:SETPOINT to PitchAngle().
+                    SET TGTPitch to PitchAngle().
+                    if ManModePitchT0 = 0 set ManModePitchT0 to timenow - 1.
+                    SET ElevatorPID:Setpoint to SHIP:CONTROL:PILOTPITCH * (TimeNow - ManModePitchT0).
                 }
                 ELSE {
-                    SET SHIP:CONTROL:PITCHTRIM TO ElevatorPID:UPDATE(TimeNow, PitchAngle() ).
-                    SET Elevator to 0.
+                    SET PitchAngVelPID:SETPOINT to TGTPitch.
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
+                    SET ManModePitchT0 TO 0.
                 }
                 IF SHIP:CONTROL:PILOTYAW <> 0 {
-                    SET Aileron TO SHIP:CONTROL:PILOTYAW.
-                    SET AileronPID:SETPOINT TO min(40,max(-40,BankAngle() )). 
+                    if ManModeRollT0 = 0 Set ManModeRollT0 to TimeNow - 1.
+                    if      BankAngle() >  40 AND SHIP:CONTROL:PILOTYAW > 0 SET AileronPID:SETPOINT to 0.
+                    else if BankAngle() < -40 AND SHIP:CONTROL:PILOTYAW < 0 SET AileronPID:SETPOINT to 0.
+                    else SET AileronPID:SETPOINT TO SHIP:CONTROL:PILOTYAW * min((TimeNow - ManModeRollT0),2).
                 }
                 ELSE {
-                    SET SHIP:CONTROL:ROLLTRIM TO AileronPID:UPDATE(TimeNow,BankAngle()).
-                    SET Aileron to 0.
+                    if      BankAngle() >  35 set AileronPID:SETPOINT to -1.0.
+                    else if BankAngle() < -35 set AileronPID:SETPOINT to  1.0.
+                    else SET AileronPID:SETPOINT to 0.
+                    set ManModeRollT0 to 0.
                 }
+                
+                SET Elevator TO ElevatorPID:UPDATE(TimeNow,pitchangvel()).
+                SET Aileron TO AileronPID:UPDATE(TimeNow, BankAngVel()).
             }
 
             // *********************

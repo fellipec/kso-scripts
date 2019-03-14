@@ -20,6 +20,7 @@ function roverStabilzeJump {
     LOCK STEERING TO LOOKDIRUP(vxcl(N,VELOCITY:SURFACE),SHIP:UP:vector).
     RCS on. SAS off.
     partsEnableReactionWheels().
+    wait 0.
 
     Until Stabilized {
         if ship:status <> "LANDED" { // Deals with rover while in air            
@@ -65,6 +66,6 @@ function roverStabilzeJump {
 
 function roverIsRollingOver {
     parameter N is TerrainNormalVector().
-    parameter Limit is 20.
+    parameter Limit is 10.
     return vang(vxcl(ship:facing:vector,ship:facing:upvector),vxcl(ship:facing:vector,N)) > Limit. 
 }
