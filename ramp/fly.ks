@@ -151,7 +151,7 @@ Function PitchLimit {
     local ShipWeight is PlaneWeight().
     if Ship:AvailableThrustAt(1) > ShipWeight return 45.
     uiDebug("TWR: " + Round((Ship:AvailableThrustAt(1) / ShipWeight),2) ).
-    return Ship:AvailableThrustAt(1) / ShipWeight * 30.
+    return max(10,Ship:AvailableThrustAt(1) / ShipWeight * 30).
 }
 
 
@@ -161,20 +161,20 @@ FUNCTION TakeOff {
     sas off.
     brakes off.
     lights on.
+    ladders off.
     stage.
     lock throttle to 1.
     local P is PitchLimit().
     LOCK STEERING TO HEADING(MagHeading(), 0).
     wait until ship:airspeed > 50.
     LOCK STEERING TO HEADING(MagHeading(), P*0.66).
-    wait until ship:altitude > LandedAlt + 50.
+    wait until ship:altitude > LandedAlt + 200.
     gear off.
     lights off.
-    wait until ship:altitude > LandedAlt + 50.
+    
     unlock steering.
     wait 0.
     sas on.
-    wait until ship:altitude > LandedAlt + 100.
     unlock throttle.
 }
 
@@ -551,15 +551,15 @@ local ElevatorPID is PIDLOOP(1.0,0.15,0.005,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
-local BankAnglePID is PIDLOOP(3.0,0.75,0.60,-33,33). 
+local BankAnglePID is PIDLOOP(2.0,0.50,0.75,-33,33). 
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.0400,0.0008,0.0010,-0.5,0.5). 
+local BankVelPID is PIDLOOP(0.0450,0.0008,0.0010,-0.5,0.5). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Aileron  
-local AileronPID is PIDLOOP(0.1,0.005,0.001,-1,1). 
+local AileronPID is PIDLOOP(0.12,0.008,0.001,-1,1). 
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
@@ -571,7 +571,7 @@ local YawVelPID is PIDLOOP(0.04,0.02,0.01,-0.2,0.2).
 SET YawVelPID:SETPOINT TO 0. 
 
 //PID Throttle
-local ThrottlePID is PIDLOOP(0.01,0.006,0.036,0,1). 
+local ThrottlePID is PIDLOOP(0.01,0.020,0.050,0,1). 
 SET ThrottlePID:SETPOINT TO 0. 
 
 //Control surface variables
@@ -744,12 +744,6 @@ until SafeToExit {
                     }
                     set GSProgAng to VANG(TGTRunway:Position,vxcl(ship:facing:starvector,ship:velocity:surface)) * GSProgAngSignal.
                     SET VNAVMODE TO "GS".
-                    //uiDebug(GSProgAngSignal*GSProgAng).
-                    
-                    // clearvecdraws().
-                    // LOCAL TGTVEC IS VECDRAW(V(0,0,0),TGTRunway:POSITION(),magenta,"",1,true,30).
-                    // LOCAL PROVEC IS VECDRAW(V(0,0,0),SHIP:VELOCITY:SURFACE,CYAN,"",1,true,30).
-
                 }
                 else {
                     //Checks if below GS
@@ -1010,6 +1004,7 @@ until SafeToExit {
             SET SHIP:CONTROL:ROLL TO Aileron. 
             SET SHIP:CONTROL:PITCH TO Elevator.
             SET SHIP:CONTROL:YAW TO Rudder.
+            
 
             // ************
             // AUTOTHROTTLE
@@ -1141,15 +1136,17 @@ until SafeToExit {
             // Neutralize RAW controls
             SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
             SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+            CHUTES ON.
             // Try to keep the ship on ground
             partsEnableReactionWheels().
             IF LandingGear = "Tricycle" { // With tricycle landing gear is safe to pitch down while on ground. This helps prevents bounces and improve braking.
                 set SteerDir to heading(90,-1).
             }
             ELSE IF LandingGear = "Taildragger" { // With taildraggers is better to keep the nose a little up to avoid a nose-over accident.
-                set SteerDir to heading(90,0.5).
+                set SteerDir to heading(90,1).
             }
             lock steering to SteerDir.
+            SET SHIP:CONTROL:WHEELSTEER to SHIP:CONTROL:YAW.
         }
         else if time:seconds > TimeOfLanding + 3 {
             uiBanner("Fly","Braking!").

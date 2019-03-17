@@ -11,7 +11,7 @@ IF HOMECONNECTION:ISCONNECTED {
   switch to archive.
   cd("ramp").
   WAIT 2. 
-  RUNPATH("FLY.KS","Taildragger").
+  RUNPATH("FLY.KS","Plane","Taildragger").
 }
 ELSE {
   PRINT("No connection. Good luck.").
