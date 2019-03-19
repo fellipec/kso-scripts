@@ -571,7 +571,7 @@ local YawVelPID is PIDLOOP(0.04,0.02,0.01,-0.2,0.2).
 SET YawVelPID:SETPOINT TO 0. 
 
 //PID Throttle
-local ThrottlePID is PIDLOOP(0.01,0.020,0.050,0,1). 
+local ThrottlePID is PIDLOOP(0.10,0.02,0.50,0,1). 
 SET ThrottlePID:SETPOINT TO 0. 
 
 //Control surface variables
@@ -676,6 +676,19 @@ IF KindOfCraft = "Shuttle" {
 ELSE IF KindOfCraft = "Plane" {
     SET PitchAnglePID:MaxOutput to PitchLimit().
     SET PitchAnglePID:MinOutput to -PitchLimit().    
+    // Adjust for high performance planes (TWR > 1)
+    if Ship:AvailableThrustAt(1) > PlaneWeight() {
+        SET BankVelPID:MaxOutput to 1.5.
+        SET BankVelPID:MinOutput to -1.5.
+        SET BankAnglePID:MaxOutput to 50.
+        SET BankAnglePID:MinOutput to -50.
+        SET PitchAngVelPID:MaxOutput to 1.
+        SET PitchAngVelPID:MinOutput to -1.
+        SET VSpeedPID:MaxOutput to 55.
+        SET VSpeedPID:MinOutput to -55.    
+        uiBanner("Fly","High Performance!").    
+    }
+
     if ship:altitude < 1000 set TGTAltitude to 1000.
     else SET TGTAltitude to SHIP:Altitude.
     SET TGTHeading to MagHeading().
