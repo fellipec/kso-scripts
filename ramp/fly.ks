@@ -535,19 +535,19 @@ local LOCPID is PIDLOOP(0.8,0.10,0.05,-35,35).
 SET LOCPID:SETPOINT TO 0.
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(3.00,1.4,0.00,-20,20). 
+local PitchAnglePID is PIDLOOP(2.00,1.4,0.00,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 // PID PitchAngVel
-local PitchAngVelPID is PIDLOOP(0.045,0.008,0.0005,-0.35,0.35). 
+local PitchAngVelPID is PIDLOOP(0.045,0.008,0.000,-0.08,0.08). 
 SET PitchAngVelPID:SETPOINT TO 0. 
 
 // PID VSpeed
-local VSpeedPID is PIDLOOP(0.25,0.10,0.01,-20,20). 
+local VSpeedPID is PIDLOOP(0.15,0.05,0.005,-20,20). 
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.5,0.25,0.005,-1,1).
+local ElevatorPID is PIDLOOP(1.2,0.20,0.005,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -677,13 +677,13 @@ ELSE IF KindOfCraft = "Plane" {
     SET PitchAnglePID:MaxOutput to PitchLimit().
     SET PitchAnglePID:MinOutput to -PitchLimit().    
     // Adjust for high performance planes (TWR > 1)
-    if Ship:AvailableThrustAt(1) > PlaneWeight() {
+    if Ship:AvailableThrustAt(1) > PlaneWeight()*1.1 {
         SET BankVelPID:MaxOutput to 1.5.
         SET BankVelPID:MinOutput to -1.5.
         SET BankAnglePID:MaxOutput to 50.
         SET BankAnglePID:MinOutput to -50.
-        SET PitchAngVelPID:MaxOutput to 2.
-        SET PitchAngVelPID:MinOutput to -2.        
+        SET PitchAngVelPID:MaxOutput to 0.15.
+        SET PitchAngVelPID:MinOutput to -0.15.        
         SET VSpeedPID:MaxOutput to 50.
         SET VSpeedPID:MinOutput to -50.    
         uiBanner("Fly","High Performance!").    
@@ -827,12 +827,9 @@ until SafeToExit {
                 IF VNAVMODE <> "PIT" {
                     SET VNAVMODE TO "PIT".
                     SET TGTHeading TO 90.
-                    IF kindofcraft = "SHUTTLE" {
-                    }
-                    ELSE {
-                        PitchAnglePID:RESET.
-                    }
-                    SET PitchAnglePID:KP TO 6.
+
+
+                    SET PitchAnglePID:KP TO 4.
                     SET PitchAnglePID:Ki TO 2.
                     SET PitchAnglePID:Kd TO 0.
                     SET ElevatorPID:Kp TO ElevatorPID:Kp * 1.2.
@@ -844,7 +841,7 @@ until SafeToExit {
                 }           
                 // Adjust craft flight
                 IF RA > 30 {
-                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 10).
+                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 7).
                     //SET PitchAnglePID:KP to PitchAnglePID:KP * 1.2.
                     IF AirSPD > 80 {
                         IF NOT BRAKES { BRAKES ON. }
