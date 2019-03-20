@@ -535,19 +535,19 @@ local LOCPID is PIDLOOP(0.8,0.10,0.05,-35,35).
 SET LOCPID:SETPOINT TO 0.
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(3.50,0.50,0.25,-20,20). 
+local PitchAnglePID is PIDLOOP(3.00,1.4,0.00,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 // PID PitchAngVel
-local PitchAngVelPID is PIDLOOP(0.015,0.002,0.0005,-0.35,0.35). 
+local PitchAngVelPID is PIDLOOP(0.045,0.008,0.0005,-0.35,0.35). 
 SET PitchAngVelPID:SETPOINT TO 0. 
 
 // PID VSpeed
-local VSpeedPID is PIDLOOP(0.50,0.20,0.10,-20,20). 
+local VSpeedPID is PIDLOOP(0.25,0.10,0.01,-20,20). 
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.0,0.15,0.005,-1,1).
+local ElevatorPID is PIDLOOP(1.5,0.25,0.005,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -682,10 +682,10 @@ ELSE IF KindOfCraft = "Plane" {
         SET BankVelPID:MinOutput to -1.5.
         SET BankAnglePID:MaxOutput to 50.
         SET BankAnglePID:MinOutput to -50.
-        SET PitchAngVelPID:MaxOutput to 1.
-        SET PitchAngVelPID:MinOutput to -1.
-        SET VSpeedPID:MaxOutput to 55.
-        SET VSpeedPID:MinOutput to -55.    
+        SET PitchAngVelPID:MaxOutput to 2.
+        SET PitchAngVelPID:MinOutput to -2.        
+        SET VSpeedPID:MaxOutput to 50.
+        SET VSpeedPID:MinOutput to -50.    
         uiBanner("Fly","High Performance!").    
     }
 
@@ -832,9 +832,9 @@ until SafeToExit {
                     ELSE {
                         PitchAnglePID:RESET.
                     }
-                    SET PitchAnglePID:KP TO 10.
-                    SET PitchAnglePID:Ki TO 4.
-                    SET PitchAnglePID:Kd TO 1.
+                    SET PitchAnglePID:KP TO 6.
+                    SET PitchAnglePID:Ki TO 2.
+                    SET PitchAnglePID:Kd TO 0.
                     SET ElevatorPID:Kp TO ElevatorPID:Kp * 1.2.
                     SET ElevatorPID:Ki to ElevatorPID:Ki * 1.0.
                     SET ElevatorPID:Kd to ElevatorPID:Kd * 1.0.
@@ -1001,12 +1001,12 @@ until SafeToExit {
                 Print "Yaw Vel:            " + Round(yawangvel(),3) +           "       " At (0,10).
 
                 Print "Target VSpeed       " + Round(PitchAnglePID:setpoint,3)+ "       " At (0,11).
-                Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,12).
-                Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,13).
-                Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,14).
+                Print "VSpeed              " + Round(Ship:verticalspeed(),3)+ "       " At (0,12).
+                Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,13).
+                Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,14).
+                Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,15).
 
-                Print "LOC BANK:           " + Round(TGTBank,3) +              "       " At (0,15).
-                Print "Center Line Dist:   " + Round(CLDist,3) +                "       " At (0,16).
+                Print "Center Line Dist:   " + Round(CLDist,3) +               "       " At (0,17).
 
                 // LOG TimeNow + ";" +
                 //     GSPID:input + ";" +
