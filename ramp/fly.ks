@@ -635,18 +635,18 @@ IF KindOfCraft = "Shuttle" {
     SET TGTRunway TO RWYKSC_SHUTTLE.
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
-    SET FLAREALT TO 300.
+    SET FLAREALT TO 250.
     // Pitch 
     SET GSPID:MAXOutput to -GSAng +25.
     SET GSPID:MINOutput to -GSAng -25.
     SET PitchAnglePID:MaxOutput to 15.
     SET PitchAnglePID:MinOutput to -ShuttleGS - 15.
-    SET PitchAnglePID:KP to 4.000.
+    SET PitchAnglePID:KP to 2.000.
     SET PitchAnglePID:KI to 0.500.
-    SET PitchAnglePID:KD to 0.100.
+    SET PitchAnglePID:KD to 0.001.
     SET ElevatorPID:KP TO 1.000. 
     SET ElevatorPID:KI TO 0.300. 
-    SET ElevatorPID:KD TO 0.050. 
+    SET ElevatorPID:KD TO 0.015. 
 
     //Roll
     SET AileronPID:KP TO 0.15.
@@ -827,23 +827,19 @@ until SafeToExit {
                 IF VNAVMODE <> "PIT" {
                     SET VNAVMODE TO "PIT".
                     SET TGTHeading TO 90.
-
-
-                    SET PitchAnglePID:KP TO 4.
-                    SET PitchAnglePID:Ki TO 2.
-                    SET PitchAnglePID:Kd TO 0.
-                    SET ElevatorPID:Kp TO ElevatorPID:Kp * 1.2.
-                    SET ElevatorPID:Ki to ElevatorPID:Ki * 1.0.
-                    SET ElevatorPID:Kd to ElevatorPID:Kd * 1.0.
+                    SET PitchAngVelPID:MaxOutput to 0.5.
+                    SET PitchAngVelPID:MinOutput to -0.5.
+                    SET PitchAnglePID:KP TO 1.5.
+                    SET PitchAnglePID:Ki TO 0.2.
+                    SET PitchAnglePID:Kd TO 0.05.
                     SET PitchAnglePID:SETPOINT to 0.
-                    SET TGTSpeed TO 70.
+                    SET TGTSpeed TO 90.
 
                 }           
                 // Adjust craft flight
                 IF RA > 30 {
                     SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 7).
-                    //SET PitchAnglePID:KP to PitchAnglePID:KP * 1.2.
-                    IF AirSPD > 80 {
+                    IF TGTSpeed > 80 {
                         IF NOT BRAKES { BRAKES ON. }
                     }
                     ELSE {
@@ -851,7 +847,6 @@ until SafeToExit {
                     }
                 }
                 ELSE {
-                    //SET TGTPitch TO 2.
                     SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 1).
                     IF BRAKES {BRAKES OFF.}
                     SET LNAVMODE TO "BNK".
