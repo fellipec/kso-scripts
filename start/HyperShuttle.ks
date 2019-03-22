@@ -9,7 +9,7 @@ local OrbitOptions is lexicon(
 	"X","Return to KSC").
 
 IF ship:status = "PRELAUNCH" {
-	RUN LAUNCH(100000).
+	RUN LAUNCH(150000).
 	reboot.
 }
 
@@ -26,6 +26,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-2.5,15).
+		run deorbitsp(-2,15).
 	}
 }
