@@ -547,7 +547,7 @@ local VSpeedPID is PIDLOOP(0.15,0.05,0.005,-20,20).
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.2,0.20,0.005,-1,1).
+local ElevatorPID is PIDLOOP(1.6,0.50,0.005,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
