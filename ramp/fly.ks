@@ -535,7 +535,7 @@ local LOCPID is PIDLOOP(0.8,0.10,0.05,-35,35).
 SET LOCPID:SETPOINT TO 0.
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(2.00,1.4,0.00,-20,20). 
+local PitchAnglePID is PIDLOOP(2.00,1.0,0.00,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 // PID PitchAngVel
@@ -547,7 +547,7 @@ local VSpeedPID is PIDLOOP(0.15,0.05,0.005,-20,20).
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.6,0.50,0.005,-1,1).
+local ElevatorPID is PIDLOOP(1.2,0.50,0.005,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -580,7 +580,8 @@ local Aileron is 0.
 local Rudder is 0.
 
 //Runways coordinates
-global RWYKSC is latlng(-0.04807,-74.65).
+//global RWYKSC is latlng(-0.04807,-74.65). Original value
+global RWYKSC is latlng(-0.04807,-74.72).
 global RWYKSC_SHUTTLE is latlng(-0.04807,-74.82).
 global RWYOAF is latlng(-1.51764918920989,-71.9565681001265).
 
@@ -682,10 +683,10 @@ ELSE IF KindOfCraft = "Plane" {
         SET BankVelPID:MinOutput to -1.5.
         SET BankAnglePID:MaxOutput to 50.
         SET BankAnglePID:MinOutput to -50.
-        SET PitchAngVelPID:MaxOutput to 0.15.
-        SET PitchAngVelPID:MinOutput to -0.15.        
-        SET VSpeedPID:MaxOutput to 50.
-        SET VSpeedPID:MinOutput to -50.    
+        SET PitchAngVelPID:MaxOutput to 0.12.
+        SET PitchAngVelPID:MinOutput to -0.12.        
+        SET VSpeedPID:MaxOutput to 30.
+        SET VSpeedPID:MinOutput to -30.    
         uiBanner("Fly","High Performance!").    
     }
 
@@ -833,7 +834,7 @@ until SafeToExit {
                     SET PitchAnglePID:Ki TO 0.2.
                     SET PitchAnglePID:Kd TO 0.05.
                     SET PitchAnglePID:SETPOINT to 0.
-                    SET TGTSpeed TO 90.
+                    SET TGTSpeed TO 70.
 
                 }           
                 // Adjust craft flight
