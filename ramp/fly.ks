@@ -168,8 +168,9 @@ FUNCTION TakeOff {
     LOCK STEERING TO HEADING(MagHeading(), 0).
     wait until ship:airspeed > 50.
     LOCK STEERING TO HEADING(MagHeading(), P*0.66).
-    wait until ship:altitude > LandedAlt + 200.
+    wait until ship:altitude > LandedAlt + 30.
     gear off.
+    wait until ship:altitude > LandedAlt + 200.
     lights off.
     
     unlock steering.
@@ -547,7 +548,7 @@ local VSpeedPID is PIDLOOP(0.15,0.05,0.005,-20,20).
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.2,0.50,0.005,-1,1).
+local ElevatorPID is PIDLOOP(1.3,0.90,0.005,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
