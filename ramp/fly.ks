@@ -840,12 +840,7 @@ until SafeToExit {
                 // Adjust craft flight
                 IF RA > 30 {
                     SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 7).
-                    IF TGTSpeed > 80 {
-                        IF NOT BRAKES { BRAKES ON. }
-                    }
-                    ELSE {
-                        IF BRAKES {BRAKES OFF.}
-                    }
+                    SET BRAKES TO AirSPD > 80.
                 }
                 ELSE {
                     SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 1).
@@ -1133,8 +1128,10 @@ until SafeToExit {
     
     // Takes care of ship after autopilot ends it's work.
     local SteerDir is heading(90,0).
+    SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 
-    until ship:status <> "LANDED" or SafeToExit {        
+    until ship:status = "SPLASHED" or SafeToExit { 
         if TimeOfLanding = 0 {
             // Set up ship for runway roll
             set TimeOfLanding to time:seconds.
@@ -1143,8 +1140,11 @@ until SafeToExit {
             SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
             SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
             CHUTES ON.
-            // Try to keep the ship on ground
+            
             partsEnableReactionWheels().
+        }
+        if time:seconds < TimeOfLanding + 3 {                 
+            // Try to keep the ship on ground
             IF LandingGear = "Tricycle" { // With tricycle landing gear is safe to pitch down while on ground. This helps prevents bounces and improve braking.
                 set SteerDir to heading(90,-1).
             }
@@ -1154,11 +1154,12 @@ until SafeToExit {
             lock steering to SteerDir.
             SET SHIP:CONTROL:WHEELSTEER to SHIP:CONTROL:YAW.
         }
-        else if time:seconds > TimeOfLanding + 3 {
+        else {
             uiBanner("Fly","Braking!").
             // We didn't bounce, apply brakes
             brakes on.
             chutes on.
+            SET SHIP:CONTROL:WHEELSTEER to SHIP:CONTROL:YAW.
             if partsReverseThrust() set ship:control:pilotmainthrottle to 1.
             if ship:groundspeed < 10 set ship:control:pilotmainthrottle to 0.
             // Don't let tail-dragger to nose-over when braking

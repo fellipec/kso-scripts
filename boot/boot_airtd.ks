@@ -5,7 +5,7 @@
 //
 // MUST NOT be used for vessels that will operate out of comms range!!
 /////////////////////////////////////////////////////////////////////////////
-
+WAIT 5.
 
 IF HOMECONNECTION:ISCONNECTED {
   switch to archive.

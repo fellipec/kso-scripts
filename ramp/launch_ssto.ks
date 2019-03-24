@@ -30,7 +30,7 @@ function ascentThrottle {
     local ApoPercent is ship:obt:apoapsis/TGTApoapsis.
     local ApoCompensation is 0.
     if ApoPercent > 0.9 set ApoCompensation to (ApoPercent - 0.9) * 10.
-    return 1 - min(0.95,max(0,ApoCompensation)).  
+    return 1 - min(0.8,max(0,ApoCompensation)).  
 }
 
 when Ship:Altitude > AirBreathingAlt then {
