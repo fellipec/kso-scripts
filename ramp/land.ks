@@ -43,7 +43,7 @@ BAYS OFF.
 GEAR OFF.
 LADDERS OFF.
 
-DrawDebugVectors off.
+DrawDebugVectors on.
 
 
 

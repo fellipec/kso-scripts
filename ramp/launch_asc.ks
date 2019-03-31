@@ -5,6 +5,16 @@
 // Achieve circular orbit with desired apoapsis.
 /////////////////////////////////////////////////////////////////////////////
 
+ON Abort {
+  unlock throttle.
+  unlock steering.
+  wait 3.
+  until stage:number = 0 stage.
+  wait until ship:verticalspeed < -20.
+  REBOOT.
+}
+
+
 // Final apoapsis (m altitude)
 parameter apo is 200000.
 parameter hdglaunch is 90. 
