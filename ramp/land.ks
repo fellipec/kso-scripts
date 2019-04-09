@@ -166,7 +166,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     local BurnStarted is false.
 
     //PID Throttle
-    SET ThrottlePID to PIDLOOP(0.03,0.02,0.01). // Kp, Ki, Kd
+    SET ThrottlePID to PIDLOOP(0.10,0.08,0.02). // Kp, Ki, Kd
     SET ThrottlePID:MAXOUTPUT TO 1.
     SET ThrottlePID:MINOUTPUT TO 0.
     SET ThrottlePID:SETPOINT TO 0. 
@@ -273,7 +273,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         }
         else {
             // Torricelli Equation (Limited to 2G Accl)
-            set TargetVSpeed to max(sqrt(2 * min(Accl,19.6) * (landRadarAltimeter() - FinalBurnHeight)),TouchdownSpeed). 
+            set TargetVSpeed to max(sqrt(2 * min(abs(Accl),19.6) * (landRadarAltimeter() - FinalBurnHeight)),TouchdownSpeed). 
         }
         IF Not BurnStarted and landRadarAltimeter() < BurnAlt {
             uiBanner("Suicide burn","Burning!"). 
@@ -301,6 +301,10 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
 
         // Check for fuel
         if BurnStarted and fTime < 1 {
+            chutes on.
+        }
+        // Check for Accl
+        if Accl < 0 {
             chutes on.
         }
 

@@ -16,7 +16,7 @@ local OrbitOptions is lexicon(
 	"R","Reboot").
 
 IF ship:status = "PRELAUNCH" {
-	RUN LAUNCH_ASC(240000).
+	RUN LAUNCH_ASC(140000).
 	IF STAGE:NUMBER > 2 STAGE.
 	WAIT 1.
 	IF STAGE:NUMBER = 1 BAYS ON.
@@ -36,7 +36,7 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(0,17.5).
+		run deorbitsp(-0.5,18).
 	}
 	else if choice = "R" {
 		REBOOT.
