@@ -637,7 +637,7 @@ IF KindOfCraft = "Shuttle" {
     SET TGTRunway TO RWYKSC_SHUTTLE.
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
-    SET FLAREALT TO 250.
+    SET FLAREALT TO 275.
     // Pitch 
     SET GSPID:MAXOutput to -GSAng +25.
     SET GSPID:MINOutput to -GSAng -25.
@@ -830,12 +830,13 @@ until SafeToExit {
                     SET VNAVMODE TO "PIT".
                     SET TGTHeading TO 90.
                     SET PitchAngVelPID:MaxOutput to 0.5.
-                    SET PitchAngVelPID:MinOutput to -0.5.
+                    SET PitchAngVelPID:MinOutput to -0.3.
                     SET PitchAnglePID:KP TO 1.5.
                     SET PitchAnglePID:Ki TO 0.2.
                     SET PitchAnglePID:Kd TO 0.05.
                     SET PitchAnglePID:SETPOINT to 0.
-                    SET TGTSpeed TO 70.
+                    IF KindOfCraft = "Shuttle" SET TGTSpeed TO  90.
+                    ELSE                       SET TGTSpeed TO  70.
 
                 }           
                 // Adjust craft flight
@@ -1034,11 +1035,11 @@ until SafeToExit {
             // ******************
 
             // Auto raise/low gear and detect time to flare when landing.
-            IF RA < FLAREALT * 2 {
+            IF RA < FLAREALT {
                 IF NOT GEAR { GEAR ON .}
                 IF NOT LIGHTS { LIGHTS ON. }
                 // CHANGE TO FLARE MODE.
-                IF APMODE = "ILS" AND BaroAltitude-TargetCoord:terrainheight < FLAREALT {
+                IF APMODE = "ILS" AND BaroAltitude < FlareAltMSL {
                     SET APMODE TO "FLR".
                 }
             }
@@ -1139,10 +1140,10 @@ until SafeToExit {
             uiBanner("Fly","Landed!").
             // Neutralize RAW controls
             SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-            SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-            CHUTES ON.
-            
+            SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.            
             partsEnableReactionWheels().
+            wait 0.
+            lock steering to SteerDir.
         }
         if time:seconds < TimeOfLanding + 3 {                 
             // Try to keep the ship on ground
@@ -1152,7 +1153,6 @@ until SafeToExit {
             ELSE IF LandingGear = "Taildragger" { // With taildraggers is better to keep the nose a little up to avoid a nose-over accident.
                 set SteerDir to heading(90,1).
             }
-            lock steering to SteerDir.
             SET SHIP:CONTROL:WHEELSTEER to SHIP:CONTROL:YAW.
         }
         else {
