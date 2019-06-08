@@ -213,7 +213,7 @@ else if ship:status <> "LANDED" {
 local WThrottlePID to PIDLOOP(0.15,0.005,0.020, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WThrottlePID:SETPOINT TO 0. 
 
-local WSteeringPID to PIDLOOP(0.003,0.001,0.002, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
+local WSteeringPID to PIDLOOP(0.05,0.01,0.02, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WSteeringPID:SETPOINT TO 0. 
 
 until runmode = -1 {
