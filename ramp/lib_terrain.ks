@@ -3,7 +3,7 @@
 FUNCTION TerrainNormalVector {
     // Thanks to Ozin
     // Returns a vector normal to the terrain
-    parameter radius is 2. //Radius of the terrain sample
+    parameter radius is 10. //Radius of the terrain sample
     local p1 to body:geopositionof(facing:vector * radius).
     local p2 to body:geopositionof(facing:vector * -radius + facing:starvector * radius).
     local p3 to body:geopositionof(facing:vector * -radius + facing:starvector * -radius).

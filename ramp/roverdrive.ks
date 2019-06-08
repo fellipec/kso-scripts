@@ -9,7 +9,7 @@
 
 // GUI, Stability control and other improvements by FellipeC 2017
 
-parameter speedlimit is 39. // Speedlimit. Default is 39 m/s, almost 88mph ;)
+parameter speedlimit is 70. // Speedlimit. Default is 39 m/s, almost 88mph ;)
 parameter turnfactor is 5. // Factor to reduce steering with speed..
 
 
@@ -213,7 +213,7 @@ else if ship:status <> "LANDED" {
 local WThrottlePID to PIDLOOP(0.15,0.005,0.020, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WThrottlePID:SETPOINT TO 0. 
 
-local WSteeringPID to PIDLOOP(0.005,0.0001,0.001, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
+local WSteeringPID to PIDLOOP(0.003,0.001,0.002, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WSteeringPID:SETPOINT TO 0. 
 
 until runmode = -1 {
@@ -253,6 +253,7 @@ until runmode = -1 {
             }
         //Detect jumps and engage stability control
         if ship:status <> "LANDED" {
+            print("Not landed.").
             if roverStabilzeJump(N) {
                 uiBanner("Rover","Wow, that was a long jump!").
                 set targetspeed to targetspeed * 0.75.
@@ -260,6 +261,7 @@ until runmode = -1 {
         }
         //Detect rollover
         if roverIsRollingOver(N) {
+            print("Rollover detected.").
             set turnfactor to max(1,turnfactor * 0.9). //Reduce turnfactor
             roverStabilzeJump(N). //Engage Stability control
         }

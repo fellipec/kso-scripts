@@ -1,6 +1,10 @@
 @lazyglobal off.
 
+
 function roverStabilzeJump {
+
+    SET SteeringManager:ROLLCONTROLANGLERANGE TO 180.
+
     parameter N is TerrainNormalVector().
     //Needs lib_terrain and lib_parts to run in the main program!
 
@@ -66,6 +70,6 @@ function roverStabilzeJump {
 
 function roverIsRollingOver {
     parameter N is TerrainNormalVector().
-    parameter Limit is 10.
+    parameter Limit is 30.
     return vang(vxcl(ship:facing:vector,ship:facing:upvector),vxcl(ship:facing:vector,N)) > Limit. 
 }

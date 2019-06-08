@@ -506,15 +506,10 @@ gui:SHOW().
 // ABORT!
 ON ABORT {
     SET APATEnabled TO FALSE.
+    partsEnableReactionWheels().
     uiWarning("Fly","Your controls!!!").
     PRESERVE.
 }
-
-
-
-
-
-
 
 
 // ////////////////
@@ -607,6 +602,7 @@ local ManModeRollT0 is 0.
 local MaxAoA is 20.
 local MaxGAllowed is 7.
 local MaxGProt is False.
+local MinGDist is 50000.
 local PitchingDown is 1.
 local PPA is 0.
 local PREVIOUSAP is "".
@@ -781,7 +777,8 @@ until SafeToExit {
 
                 //Checks distance from centerline
                 local GDist to GroundDistance(TargetCoord).
-                local AllowedDeviation is GDist * sin(0.3).
+                if GDist < MinGDist SET MinGDist to GDist.
+                local AllowedDeviation is MinGDist * sin(0.3).
                 SET CLDist TO CenterLineDistance(TGTRunway).
                 IF ABS(CLDist) < AllowedDeviation {
                     SET LNAVMODE TO "HDG".
@@ -818,7 +815,7 @@ until SafeToExit {
                         SET TGTSpeed to max(SQRT(TGTAltitude)*9,100).
                         SET ATMODE to "OFF".
                     }
-                    SET BRAKES to AirSPD > TGTSpeed.
+                    SET BRAKES to AirSPD > TGTSpeed * 1.1.
                 }
             }
             // **********
@@ -840,12 +837,12 @@ until SafeToExit {
 
                 }           
                 // Adjust craft flight
-                IF RA > 30 {
+                IF RA > 15 {
                     SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 7).
-                    SET BRAKES TO AirSPD > 80.
+                    SET BRAKES TO AirSPD > TGTSpeed * 1.1.
                 }
                 ELSE {
-                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 1).
+                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 0.5).
                     IF BRAKES {BRAKES OFF.}
                     SET LNAVMODE TO "BNK".
                     SET TGTBank TO 0.

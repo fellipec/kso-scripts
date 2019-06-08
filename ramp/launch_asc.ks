@@ -5,16 +5,6 @@
 // Achieve circular orbit with desired apoapsis.
 /////////////////////////////////////////////////////////////////////////////
 
-ON Abort {
-  unlock throttle.
-  unlock steering.
-  wait 3.
-  until stage:number = 0 stage.
-  wait until ship:verticalspeed < -20.
-  REBOOT.
-}
-
-
 // Final apoapsis (m altitude)
 parameter apo is 200000.
 parameter hdglaunch is 90. 
@@ -22,6 +12,19 @@ parameter hdglaunch is 90.
 runoncepath("lib_parts.ks"). 
 runoncepath("lib_ui.ks").
 runoncepath("lib_util").
+
+
+//Abort sequence
+ON Abort {
+  unlock throttle.
+  unlock steering.
+  set ship:control:pilotmainthrottle to 1. 
+  wait 3.
+  partsEnableReactionWheels().
+  until stage:number = 0 stage.
+  wait until ship:verticalspeed < -20.
+  REBOOT.
+}
 
 uiBanner("Launch","Launching to an orbit of " + round(apo/1000) + "km and heading of " + hdglaunch + "º"). 
 
@@ -177,7 +180,7 @@ unlock throttle.
 // keeps our burn calculations from being erroneous due to staging mid-burn.
 if stage:resourceslex:haskey("LiquidFuel") {
   if stage:resourceslex["LiquidFuel"]:capacity > 0 { // Checks to avoid NaN error
-    if stage:resourceslex["LiquidFuel"]:amount / stage:resourceslex["LiquidFuel"]:capacity < 0.1 {
+    if stage:resourceslex["LiquidFuel"]:amount / stage:resourceslex["LiquidFuel"]:capacity < 0.02 {
       wait 1. stage.
       uiBanner("Launch","Discarding tank").
       wait until stage:ready.
