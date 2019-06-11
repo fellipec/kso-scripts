@@ -539,11 +539,11 @@ local PitchAngVelPID is PIDLOOP(0.045,0.008,0.000,-0.08,0.08).
 SET PitchAngVelPID:SETPOINT TO 0. 
 
 // PID VSpeed
-local VSpeedPID is PIDLOOP(0.15,0.05,0.005,-20,20). 
+local VSpeedPID is PIDLOOP(0.50,0.25,0.050,-20,20). 
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.3,0.90,0.005,-1,1).
+local ElevatorPID is PIDLOOP(1.5,0.90,0.01,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -604,7 +604,7 @@ local MaxGAllowed is 7.
 local MaxGProt is False.
 local MinGDist is 50000.
 local PitchingDown is 1.
-local PPA is 0.
+local PPA is 0. //Prograde Pitch Angle
 local PREVIOUSAP is "".
 local PREVIOUSAT is "".
 local PREVIOUSLNAV is "".

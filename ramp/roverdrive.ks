@@ -12,6 +12,9 @@
 parameter speedlimit is 70. // Speedlimit. Default is 39 m/s, almost 88mph ;)
 parameter turnfactor is 5. // Factor to reduce steering with speed..
 
+Function DriveAngVel {
+    RETURN vdot(facing:topvector, ship:angularvel).
+}
 
 runoncepath("lib_ui").
 runoncepath("lib_util").
@@ -19,6 +22,7 @@ runoncepath("lib_parts").
 runoncepath("lib_terrain").
 runoncepath("lib_rover").
 
+local breaking is false.
 local wtVAL is 0. //Wheel Throttle Value
 local kTurn is 0. //Wheel turn value.
 local targetspeed is 0. //Cruise control starting speed
@@ -213,8 +217,11 @@ else if ship:status <> "LANDED" {
 local WThrottlePID to PIDLOOP(0.15,0.005,0.020, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WThrottlePID:SETPOINT TO 0. 
 
-local WSteeringPID to PIDLOOP(0.05,0.01,0.02, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
+local WSteeringPID to PIDLOOP(0.2,0.05,0.1, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WSteeringPID:SETPOINT TO 0. 
+
+local WRateTurnPID to PIDLOOP(0.09,0.001,0.05, -2, 2). // Kp, Ki, Kd, MinOutput, MaxOutput
+set WRateTurnPID:SETPOINT TO 0.
 
 until runmode = -1 {
 
@@ -234,8 +241,16 @@ until runmode = -1 {
         set targetspeed to max(-speedlimit/3, min( speedlimit, targetspeed)).
         set gs to vdot(ship:facing:vector,ship:velocity:surface).
         set wtVAL to WThrottlePID:UPDATE(time:seconds,gs-targetspeed).
-
-        if brakes { //Disable cruise control if the brakes are turned on.
+        if abs(gs) > abs(targetspeed) or targetspeed - gs > targetspeed {
+            brakes on.
+            breaking on.
+        }
+        else if breaking {
+            brakes off.
+            breaking off.
+        }
+        
+        if brakes and not breaking { //Disable cruise control if the brakes are turned on.
             set targetspeed to 0.
         }
         
@@ -245,7 +260,11 @@ until runmode = -1 {
             if gs < 0 set errorSteering to -errorSteering.
             set WSteeringPID:MaxOutput to  1 * turnlimit.
             set WSteeringPID:MinOutput to -1 * turnlimit.
-            set kturn to WSteeringPID:UPDATE(time:seconds,errorSteering).
+            set WRateTurnPID:MaxOutput to  2 * turnlimit.
+            set WRateTurnPID:MinOutput to -2 * turnlimit.
+            set WSteeringPID:setpoint to WRateTurnPID:UPDATE(time:seconds,errorSteering).
+            set kturn to WSteeringPID:UPDATE(time:seconds,-DriveAngVel()).
+            
         }
         else {
             set kturn to turnlimit * SHIP:CONTROL:PILOTWHEELSTEER.
