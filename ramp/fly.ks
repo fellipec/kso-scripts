@@ -98,7 +98,8 @@ FUNCTION CompassDegrees {
 }
 
 FUNCTION RadarAltimeter {
-    Return ship:altitude - ship:geoposition:terrainheight.
+    Return alt:radar.
+    //Return ship:altitude - max(0,ship:geoposition:terrainheight).
 }
 
 FUNCTION DeltaHeading {
@@ -675,7 +676,7 @@ ELSE IF KindOfCraft = "Plane" {
     SET PitchAnglePID:MaxOutput to PitchLimit().
     SET PitchAnglePID:MinOutput to -PitchLimit().    
     // Adjust for high performance planes (TWR > 1)
-    if Ship:AvailableThrustAt(1) > PlaneWeight()*1.1 {
+    if Ship:AvailableThrustAt(1) > PlaneWeight()*1.1 and Ship:mass < 21 {
         SET BankVelPID:MaxOutput to 1.5.
         SET BankVelPID:MinOutput to -1.5.
         SET BankAnglePID:MaxOutput to 50.
@@ -685,6 +686,12 @@ ELSE IF KindOfCraft = "Plane" {
         SET VSpeedPID:MaxOutput to 30.
         SET VSpeedPID:MinOutput to -30.    
         uiBanner("Fly","High Performance!").    
+    }
+    else if ship:mass > 50 {
+        SET PitchAngVelPID:MaxOutput to 0.32.
+        SET PitchAngVelPID:MinOutput to -0.32.  
+        SET VSpeedPID:MaxOutput to 15.
+        SET VSpeedPID:MinOutput to -20.    
     }
 
     if ship:altitude < 1000 set TGTAltitude to 1000.
@@ -973,27 +980,38 @@ until SafeToExit {
             SET Rudder TO YawDamperPID:UPDATE(TimeNow, yawangvel()).
            
 
-                PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       " at (0,1).
-                PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,2).
+                // PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       " at (0,1).
+                // PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,2).
 
-                PRINT "T Bank Vel:         " + round(AileronPID:SETPOINT,3) +   "       " At (0,3).
-                PRINT "Bank Vel:           " + ROUND(BankAngVel(),2) +          "       " at (0,4).
+                // PRINT "T Bank Vel:         " + round(AileronPID:SETPOINT,3) +   "       " At (0,3).
+                // PRINT "Bank Vel:           " + ROUND(BankAngVel(),2) +          "       " at (0,4).
 
-                PRINT "Aileron:            " + ROUND(Aileron,2) +               "       " At (0,5).
+                // PRINT "Aileron:            " + ROUND(Aileron,2) +               "       " At (0,5).
 
-                Print "GS Angle:           " + Round(GSProgAng,3)+              "       " At (0,6).
+                // Print "GS Angle:           " + Round(GSProgAng,3)+              "       " At (0,6).
 
-                Print "Yaw Error:          " + Round(yawerror(),3) +            "       " At (0,8).
-                Print "T Yaw Vel:          " + Round(yawdamperpid:setpoint,3) + "       " At (0,9).
-                Print "Yaw Vel:            " + Round(yawangvel(),3) +           "       " At (0,10).
+                // Print "Yaw Error:          " + Round(yawerror(),3) +            "       " At (0,8).
+                // Print "T Yaw Vel:          " + Round(yawdamperpid:setpoint,3) + "       " At (0,9).
+                // Print "Yaw Vel:            " + Round(yawangvel(),3) +           "       " At (0,10).
 
-                Print "Target VSpeed       " + Round(PitchAnglePID:setpoint,3)+ "       " At (0,11).
-                Print "VSpeed              " + Round(Ship:verticalspeed(),3)+ "       " At (0,12).
-                Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,13).
-                Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,14).
-                Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,15).
+                // Print "Target VSpeed       " + Round(PitchAnglePID:setpoint,3)+ "       " At (0,11).
+                // Print "VSpeed              " + Round(Ship:verticalspeed(),3)+ "       " At (0,12).
+                // Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,13).
+                // Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,14).
+                // Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,15).
+                PRINT "Ship: Height:       " + RA AT (0,18). 
+                print "ALT:RADAR:          " + ALT:RADAR AT (0,19).
 
-                Print "Center Line Dist:   " + Round(CLDist,3) +               "       " At (0,17).
+                PRINT "SHIP:GEOPOSITION:TERRAINHEIGHT:       " + SHIP:GEOPOSITION:TERRAINHEIGHT AT (0,20). 
+                PRINT "SHIP:GEOPOSITION:                     " + SHIP:GEOPOSITION AT (0,21). 
+
+                LOCAL q IS ship:geoposition.
+
+                PRINT "Q:TERRAINHEIGHT:       " + q:TERRAINHEIGHT AT (0,22). 
+                PRINT "Q:                     " + q AT (0,23). 
+
+
+                // Print "Center Line Dist:   " + Round(CLDist,3) +               "       " At (0,17).
 
                 // LOG TimeNow + ";" +
                 //     GSPID:input + ";" +
@@ -1119,6 +1137,7 @@ until SafeToExit {
             PRINT "Ship: Latitude:     " + SHIP:geoposition:LAT AT (0,10).
             PRINT "Ship: Longitude:    " + SHIP:geoposition:LNG AT (0,11).
             PRINT "Ship: Altitude:     " + BaroAltitude AT (0,12).
+            PRINT "Ship: Height:       " + RA AT (0,13). 
             PRINT "GS Altitude: " + ROUND(Glideslope(TGTRunway,GSAng),2) AT (0,30).
         }
         WAIT 0. //Next loop only in next physics tick 
