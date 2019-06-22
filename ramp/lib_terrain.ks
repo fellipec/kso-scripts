@@ -14,3 +14,10 @@ FUNCTION TerrainNormalVector {
     local normalvec to vcrs(p2p1,p3p1).
     return normalvec.
 }
+
+
+FUNCTION TerrainGroundDistance {
+    // Returns distance to a point in ground from the ship's ground position (ignores altitude)
+    PARAMETER TgtPos.
+    RETURN vxcl(up:vector, TgtPos:Position):mag.
+}

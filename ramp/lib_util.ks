@@ -1,4 +1,5 @@
-//Global Lexicon for UTILFACEBURN
+
+
 
 FUNCTION UTILFACEBURNHasSensors { 
   // Checks if ship have required sensors:

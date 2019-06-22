@@ -4,6 +4,8 @@ PARAMETER Slope is 20.
 runoncepath("lib_ui").
 runoncepath("lib_parts").
 runoncepath("lib_util").
+runoncepath("lib_terrain").
+
 SAS OFF.
 SET SteeringManager:ROLLCONTROLANGLERANGE to 180. //Make the cooked controls work better with space planes.
 
@@ -115,11 +117,12 @@ SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
 SET KUNIVERSE:TIMEWARP:WARP to 2.
 WAIT UNTIL SHIP:ALTITUDE < 71000.
 KUNIVERSE:TIMEWARP:CANCELWARP().
-WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope) OR ship:airspeed < 340.
+WAIT UNTIL SHIP:ALTITUDE > deorbitspGlideslope(Slope) OR ship:airspeed < 340 OR TerrainGroundDistance(DeorbitSPKSCRW09) < 60000.
+PRINT(TerrainGroundDistance(DeorbitSPKSCRW09)).
 uiBanner("Deorbit","Preparing for atmospheric flight...").
 //LOCK STEERING TO HEADING(90,-Slope-5).
 LOCK STEERING TO LOOKDIRUP(DeorbitSPKSCRW09:POSITION(),SHIP:UP:VECTOR).
-WAIT UNTIL SHIP:ALTITUDE < 15000 OR SHIP:VELOCITY:SURFACE:MAG < 900.
+WAIT UNTIL SHIP:ALTITUDE < 12000 OR SHIP:VELOCITY:SURFACE:MAG < 900 OR TerrainGroundDistance(DeorbitSPKSCRW09) < 50000.
 uiBanner("Deorbit","Activating atmospheric autopilot...").
 UNLOCK THROTTLE.
 UNLOCK STEERING.

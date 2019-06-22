@@ -9,6 +9,7 @@ PARAMETER ShuttleGS is 20. // Default ILS Glideslope angle
 
 runoncepath("lib_ui").
 runoncepath("lib_parts").
+runoncepath("lib_terrain").
 
 CLEARVECDRAWS().
 CLEARGUIS().
@@ -115,12 +116,6 @@ FUNCTION DeltaHeading {
     Return dHeading.
 }
 
-FUNCTION GroundDistance {
-    // Returns distance to a point in ground from the ship's ground position (ignores altitude)
-    PARAMETER TgtPos.
-    RETURN vxcl(up:vector, TgtPos:Position):mag.
-}
-
 FUNCTION Glideslope{
     //Returns the altitude of the glideslope
     PARAMETER Threshold.
@@ -128,7 +123,7 @@ FUNCTION Glideslope{
     PARAMETER Offset is 20.
     LOCAL KerbinAngle is abs(ship:geoposition:lng) - abs(Threshold:lng).
     LOCAL Correction IS SQRT( (KERBIN:RADIUS^2) + (TAN(KerbinAngle)*KERBIN:RADIUS)^2 ) - KERBIN:Radius. // Why this correction? https://imgur.com/a/CPHnD
-    RETURN (tan(GSAngle) * GroundDistance(Threshold)) + Threshold:terrainheight + Correction + Offset.
+    RETURN (tan(GSAngle) * TerrainGroundDistance(Threshold)) + Threshold:terrainheight + Correction + Offset.
 }
 
 FUNCTION CenterLineDistance {
@@ -136,10 +131,10 @@ FUNCTION CenterLineDistance {
     PARAMETER Threshold.
     LOCAL Marker IS latlng(Threshold:lat,Ship:geoposition:lng).
     IF SHIP:geoposition:lat > Threshold:lat {
-        RETURN GroundDistance(Marker).
+        RETURN TerrainGroundDistance(Marker).
     }
     ELSE {
-        RETURN -GroundDistance(Marker).
+        RETURN -TerrainGroundDistance(Marker).
     }
 }
 
@@ -165,13 +160,13 @@ FUNCTION TakeOff {
     ladders off.
     stage.
     lock throttle to 1.
-    local P is PitchLimit().
+    local P is min(30,max(10,PitchLimit())).
     LOCK STEERING TO HEADING(MagHeading(), 0).
     wait until ship:airspeed > 50.
-    LOCK STEERING TO HEADING(MagHeading(), P*0.66).
+    LOCK STEERING TO HEADING(MagHeading(), P).
     wait until ship:altitude > LandedAlt + 30.
     gear off.
-    wait until ship:altitude > LandedAlt + 200.
+    wait until ship:altitude > LandedAlt + 100.
     lights off.
     
     unlock steering.
@@ -524,7 +519,7 @@ ON ABORT {
 
 
 // PID GS
-local GSPID is PIDLOOP(3,0.40,0.10,-30,30). 
+local GSPID is PIDLOOP(1.5,0.75,0.50,-30,30). 
 SET GSPID:SETPOINT TO 0.
 
 // PID LOC
@@ -536,7 +531,7 @@ local PitchAnglePID is PIDLOOP(2.00,1.0,0.00,-20,20).
 SET PitchAnglePID:SETPOINT TO 0.
 
 // PID PitchAngVel
-local PitchAngVelPID is PIDLOOP(0.045,0.008,0.000,-0.08,0.08). 
+local PitchAngVelPID is PIDLOOP(0.045,0.008,0.000,-0.25,0.25). 
 SET PitchAngVelPID:SETPOINT TO 0. 
 
 // PID VSpeed
@@ -552,7 +547,7 @@ local BankAnglePID is PIDLOOP(2.0,0.50,0.75,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.0450,0.0008,0.0010,-0.5,0.5). 
+local BankVelPID is PIDLOOP(0.0450,0.0008,0.0010,-0.7,0.7). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Aileron  
@@ -564,7 +559,7 @@ local YawDamperPID is PIDLOOP(1,0.3,0.1,-1,1).
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID YawVel
-local YawVelPID is PIDLOOP(0.04,0.02,0.01,-0.2,0.2). 
+local YawVelPID is PIDLOOP(0.04,0.02,0.01,-0.8,0.8). 
 SET YawVelPID:SETPOINT TO 0. 
 
 //PID Throttle
@@ -645,7 +640,7 @@ IF KindOfCraft = "Shuttle" {
     SET PitchAnglePID:KD to 0.001.
     SET ElevatorPID:KP TO 1.000. 
     SET ElevatorPID:KI TO 0.300. 
-    SET ElevatorPID:KD TO 0.015. 
+    SET ElevatorPID:KD TO 0.075. 
 
     //Roll
     SET AileronPID:KP TO 0.15.
@@ -654,6 +649,8 @@ IF KindOfCraft = "Shuttle" {
     SET BankAnglePID:KP to 3.0.
     SET BankAnglePID:KI to 0.25.
     SET BankAnglePID:KD to 0.15.
+    SET BankVelPID:minoutput to -1.
+    SET BankVelPID:maxoutput to 1.
 
     //Yaw Damper
     SET YawDamperPID:KP to 0.80. 
@@ -667,7 +664,10 @@ IF KindOfCraft = "Shuttle" {
     LIST Resources IN ShipResources.
     ShuttleWithJets OFF.
     FOR rsr IN ShipResources {
-        IF rsr:name = "IntakeAir" ShuttleWithJets ON.
+        IF rsr:name = "IntakeAir" {
+            ShuttleWithJets ON.
+            SET FLAREALT TO 150.
+        }
     }
 
     uiChime().
@@ -681,8 +681,9 @@ ELSE IF KindOfCraft = "Plane" {
         SET BankVelPID:MinOutput to -1.5.
         SET BankAnglePID:MaxOutput to 50.
         SET BankAnglePID:MinOutput to -50.
-        SET PitchAngVelPID:MaxOutput to 0.12.
-        SET PitchAngVelPID:MinOutput to -0.12.        
+        SET PitchAngVelPID:KD to 0.01.
+        SET PitchAngVelPID:MaxOutput to 0.5.
+        SET PitchAngVelPID:MinOutput to -0.5.        
         SET VSpeedPID:MaxOutput to 30.
         SET VSpeedPID:MinOutput to -30.    
         uiBanner("Fly","High Performance!").    
@@ -783,9 +784,9 @@ until SafeToExit {
 
 
                 //Checks distance from centerline
-                local GDist to GroundDistance(TargetCoord).
+                local GDist to TerrainGroundDistance(TargetCoord).
                 if GDist < MinGDist SET MinGDist to GDist.
-                local AllowedDeviation is MinGDist * sin(0.3).
+                local AllowedDeviation is max(MinGDist * sin(0.3),15).
                 SET CLDist TO CenterLineDistance(TGTRunway).
                 IF ABS(CLDist) < AllowedDeviation {
                     SET LNAVMODE TO "HDG".
@@ -903,7 +904,7 @@ until SafeToExit {
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
                     SET GSPID:MAXOutput to -GSAng +25.
                     SET GSPID:MINOutput to -GSAng -25.
-                    SET PitchAngVelPID:SETPOINT to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng+1))).
+                    SET PitchAngVelPID:SETPOINT to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng-1))).
                 }
                 ELSE IF VNAVMODE = "ALT" {
                     SET dAlt to BaroAltitude - TGTAltitude.
@@ -999,16 +1000,16 @@ until SafeToExit {
                 // Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,13).
                 // Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,14).
                 // Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,15).
-                PRINT "Ship: Height:       " + RA AT (0,18). 
-                print "ALT:RADAR:          " + ALT:RADAR AT (0,19).
+                // PRINT "Ship: Height:       " + RA AT (0,18). 
+                // print "ALT:RADAR:          " + ALT:RADAR AT (0,19).
 
-                PRINT "SHIP:GEOPOSITION:TERRAINHEIGHT:       " + SHIP:GEOPOSITION:TERRAINHEIGHT AT (0,20). 
-                PRINT "SHIP:GEOPOSITION:                     " + SHIP:GEOPOSITION AT (0,21). 
+                // PRINT "SHIP:GEOPOSITION:TERRAINHEIGHT:       " + SHIP:GEOPOSITION:TERRAINHEIGHT AT (0,20). 
+                // PRINT "SHIP:GEOPOSITION:                     " + SHIP:GEOPOSITION AT (0,21). 
 
-                LOCAL q IS ship:geoposition.
+                // LOCAL q IS ship:geoposition.
 
-                PRINT "Q:TERRAINHEIGHT:       " + q:TERRAINHEIGHT AT (0,22). 
-                PRINT "Q:                     " + q AT (0,23). 
+                // PRINT "Q:TERRAINHEIGHT:       " + q:TERRAINHEIGHT AT (0,22). 
+                // PRINT "Q:                     " + q AT (0,23). 
 
 
                 // Print "Center Line Dist:   " + Round(CLDist,3) +               "       " At (0,17).
@@ -1109,7 +1110,7 @@ until SafeToExit {
         }
         ELSE {
             SET labelMode:text     to "<b><size=17>" + APMODE +" | " + VNAVMODE + " | " + LNAVMODE + " | " + ATMODE +"</size></b>".
-            SET LabelWaypointDist:text to ROUND(GroundDistance(TargetCoord)/1000,1) + " km".
+            SET LabelWaypointDist:text to ROUND(TerrainGroundDistance(TargetCoord)/1000,1) + " km".
             SET LabelHDG:TEXT  TO "<b>" + ROUND(TGTHeading,2):TOSTRING + "º</b>".
             SET LabelALT:TEXT  TO "<b>" + ROUND(TGTAltitude,2):TOSTRING + " m</b>".
             SET LabelBNK:TEXT TO  "<b>" + ROUND(BankVelPID:Setpoint,2) + "º</b>".

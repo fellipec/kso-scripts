@@ -1,9 +1,9 @@
 @lazyglobal off.
 
-SET STEERINGMANAGER:MAXSTOPPINGTIME TO 5.
-SET STEERINGMANAGER:PITCHPID:KD TO 1.
-SET STEERINGMANAGER:YAWPID:KD TO 1.
-SET STEERINGMANAGER:ROLLPID:KD TO 1.
+SET STEERINGMANAGER:MAXSTOPPINGTIME TO 10.
+SET STEERINGMANAGER:PITCHPID:KD TO 2.
+SET STEERINGMANAGER:YAWPID:KD TO 2.
+SET STEERINGMANAGER:ROLLPID:KD TO 2.
 
 runoncepath("lib_ui").
 
@@ -13,14 +13,16 @@ local OrbitOptions is lexicon(
 	"2","Rendez-vous with ISS",
 	"X","Return to KSC").
 
-IF ship:status = "PRELAUNCH" {
-	RUN LAUNCH_ASC(100000).
-    IF STAGE:NUMBER > 1 STAGE. // Discard the tank
-	BAYS ON.
-	reboot.
+IF ship:status = "PRELAUNCH" or ship:status = "LANDED" {
+    brakes on.
+    wait 2.
+    brakes off.
+    RUN LAUNCH(200000).    
+    reboot.
 }
 
 ELSE IF ship:status = "ORBITING" {
+	IF STAGE:NUMBER > 0 STAGE.
 	rcs off.
 	local choice is uiTerminalMenu(OrbitOptions).
 	if choice = 1 {
@@ -32,9 +34,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-2,20).
+		run deorbitsp(-13,20).
 	}
-}
-ELSE IF SHIP:STATUS = "FLYING" {
-	run deorbitsp(-8,15).
 }
