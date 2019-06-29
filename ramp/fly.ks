@@ -516,6 +516,7 @@ SET ButtonReboot:ONCLICK TO {
     gui:HIDE().
     SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
     SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+    SAS ON.
     reboot.
 }.
 
@@ -561,7 +562,7 @@ local VSpeedPID is PIDLOOP(0.15,0.001,0.003,-20,20).
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(2.5,0.90,0.01,-1,1).
+local ElevatorPID is PIDLOOP(2.0,0.50,0.01,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -608,6 +609,9 @@ local AUTOTHROTTLE is TRUE.
 local CLDist is 0.
 local dAlt is 0.
 local dHeading is 0.
+local ElevatorKPDefault is 0.
+local ElevatorKIDefault is 0.
+local ElevatorKDDefault is 0. 
 local FLAREALT is 150.
 local GSAng is 5.
 local GSProgAng is 0.
@@ -621,6 +625,7 @@ local MaxAoA is 20.
 local MaxGAllowed is 7.
 local MaxGProt is False.
 local MinGDist is 50000.
+local PAVelDefault is 0. // Pitch Angle Velocity Default
 local PitchingDown is 1.
 local PPA is 0. //Prograde Pitch Angle
 local PREVIOUSAP is "".
@@ -643,6 +648,7 @@ local TGTVSpeed is 0.
 local TimeOfLanding is 0.
 local VNAVMODE is "ALT".
 local VALUETHROTTLE is 0.
+local VSDefault is 0. //Vertical Speed Default
 
 IF KindOfCraft = "Shuttle" {
     SET APMODE TO "ILS".
@@ -704,18 +710,20 @@ ELSE IF KindOfCraft = "Plane" {
         SET BankVelPID:MinOutput to -1.5.
         SET BankAnglePID:MaxOutput to 50.
         SET BankAnglePID:MinOutput to -50.
-        SET PitchAngVelPID:KD to 0.01.
         SET PitchAngVelPID:MaxOutput to 0.5.
-        SET PitchAngVelPID:MinOutput to -0.5.        
-        SET VSpeedPID:MaxOutput to 30.
-        SET VSpeedPID:MinOutput to -30.    
+        SET PitchAngVelPID:MinOutput to -0.5.
+        SET PitchAngVelPID:KP TO 0.02500.
+        SET PitchAngVelPID:Ki TO 0.00002.
+        SET PitchAngVelPID:KD TO 0.00003.
+        SET VSpeedPID:MaxOutput to 40.
+        SET VSpeedPID:MinOutput to -40.    
         uiBanner("Fly","High Performance!").    
     }
     else if ship:mass > 50 {
         SET PitchAngVelPID:MaxOutput to 0.32.
         SET PitchAngVelPID:MinOutput to -0.32.  
-        SET VSpeedPID:MaxOutput to 15.
-        SET VSpeedPID:MinOutput to -20.    
+        SET VSpeedPID:MaxOutput to 25.
+        SET VSpeedPID:MinOutput to -25.    
     }
 
     if ship:altitude < 1000 set TGTAltitude to 1000.
@@ -749,6 +757,11 @@ local TimeNow is Time:seconds - t0.
 local BaroAltitude is ship:altitude.
 local SafeToExit is false.
 local FlareAltMSL is flarealt + tgtrunway:terrainheight().
+set PAVelDefault to PitchAngVelPID:maxoutput.
+set ElevatorKPDefault to ElevatorPID:KP.
+set ElevatorKIDefault to ElevatorPID:KI.
+set ElevatorKDDefault to ElevatorPID:KD.
+set VSDefault to VSpeedPID:maxoutput.
 
 until SafeToExit {
 
@@ -870,7 +883,7 @@ until SafeToExit {
                 // Adjust craft flight
                 IF RA > 15 {
                     //SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 7).
-                    SET TGTVSpeed to -7.
+                    SET TGTVSpeed to -5.
                     SET BRAKES TO AirSPD > TGTSpeed * 1.1.
                 }
                 ELSE {
@@ -926,6 +939,29 @@ until SafeToExit {
 
 
                 // DEAL WITH VNAV
+
+                IF AirSPD > 400 { // Ease pitch while supersonic
+                    SET PitchAngVelPID:maxoutput TO PAVelDefault / 5.
+                    SET PitchAngVelPID:minoutput TO -PAVelDefault / 5.
+                    set ElevatorPID:KP to ElevatorKPDefault / 5. 
+                    set ElevatorPID:KI to ElevatorKIDefault / 10. 
+                    set ElevatorPID:KD to ElevatorKDDefault / 10. 
+                }
+                ELSE {
+                    SET PitchAngVelPID:maxoutput TO PAVelDefault.
+                    SET PitchAngVelPID:minoutput TO -PAVelDefault.
+                    set ElevatorPID:KP to ElevatorKPDefault . 
+                    set ElevatorPID:KI to ElevatorKIDefault . 
+                    set ElevatorPID:KD to ElevatorKDDefault . 
+                }
+
+                IF AirSPD < 100 { // Reduces VSpeed on climb if not fast enough
+                    SET VSpeedPID:maxoutput to VSDefault / 4.
+                }
+                ELSE {
+                    SET VSpeedPID:maxoutput to VSDefault.
+                }
+
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
                     SET GSPID:MAXOutput to -GSAng +25.
                     SET GSPID:MINOutput to -GSAng -25.
@@ -1005,13 +1041,19 @@ until SafeToExit {
                         SET VNAVMODE TO PREVIOUSVNAV.
                         SET LNAVMODE TO PREVIOUSLNAV.
                         SET ATMODE TO PREVIOUSAT.
-                        SET APMODE TO PREVIOUSAP.
+                        SET APMODE TO PREVIOUSAP. 
                     }
                 }
             }
 
             // Yaw Damper
-            SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,YawError()).
+            IF VNAVMODE = "FLR" AND LNAVMODE = "BNK" AND TGTBank = 0 {            
+                SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,5*DeltaHeading(TGTHeading)).
+            }
+            ELSE {
+                SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,YawError()).
+            }
+            
             SET Rudder TO YawDamperPID:UPDATE(TimeNow, yawangvel()).
            
 
