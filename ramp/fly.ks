@@ -439,6 +439,28 @@ SET ButtonPIT:ONCLICK   TO { SET VNAVMODE TO "PIT". }.
 SET ButtonPITM:ONCLICK  TO { SET TGTPitch TO ROUND(TGTPitch) -1 .}.
 SET ButtonPITP:ONCLICK  TO { SET TGTPitch TO ROUND(TGTPitch) +1 .}.
 
+//VS Settings
+LOCAL vssettings to apsettings:ADDHLAYOUT().
+LOCAL ButtonVS TO vssettings:ADDBUTTON("VS").
+SET ButtonVS:Style:WIDTH TO 40.
+SET ButtonVS:Style:HEIGHT TO 25.
+LOCAL ButtonVSM TO vssettings:ADDBUTTON("▼").
+SET ButtonVSM:Style:WIDTH TO 40.
+SET ButtonVSM:Style:HEIGHT TO 25.
+LOCAL LabelVS TO vssettings:ADDLABEL("").
+SET LabelVS:Style:HEIGHT TO 25.
+SET LabelVS:STYLE:ALIGN TO "CENTER".
+LOCAL ButtonVSP TO vssettings:ADDBUTTON("▲").
+SET ButtonVSP:Style:WIDTH TO 40.
+SET ButtonVSP:Style:HEIGHT TO 25.
+
+SET ButtonVS:ONCLICK   TO { SET VNAVMODE TO "VS". }.
+SET ButtonVSM:ONCLICK  TO { SET TGTPitch TO ROUND(TGTVSpeed) -1 .}.
+SET ButtonVSP:ONCLICK  TO { SET TGTPitch TO ROUND(TGTVSpeed) +1 .}.
+
+
+
+
 // Waypoints selection
 LOCAL ButtonWAYPOINTS TO apsettings:ADDBUTTON("Select waypoint").
 LOCAL wpsettings to apsettings:ADDHLAYOUT().
@@ -527,23 +549,23 @@ local LOCPID is PIDLOOP(0.8,0.10,0.05,-35,35).
 SET LOCPID:SETPOINT TO 0.
 
 // PID Pitch Angle
-local PitchAnglePID is PIDLOOP(2.00,1.0,0.00,-20,20). 
+local PitchAnglePID is PIDLOOP(2.00,0.0003,0.005,-20,20). 
 SET PitchAnglePID:SETPOINT TO 0.
 
 // PID PitchAngVel
-local PitchAngVelPID is PIDLOOP(0.045,0.008,0.000,-0.25,0.25). 
+local PitchAngVelPID is PIDLOOP(0.050,0.0001,0.0002,-0.25,0.25). 
 SET PitchAngVelPID:SETPOINT TO 0. 
 
 // PID VSpeed
-local VSpeedPID is PIDLOOP(0.50,0.25,0.050,-20,20). 
+local VSpeedPID is PIDLOOP(0.15,0.001,0.003,-20,20). 
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(1.5,0.90,0.01,-1,1).
+local ElevatorPID is PIDLOOP(2.5,0.90,0.01,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
-local BankAnglePID is PIDLOOP(2.0,0.50,0.75,-33,33). 
+local BankAnglePID is PIDLOOP(2.0,0.20,0.50,-33,33). 
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
@@ -617,6 +639,7 @@ local TGTHeading is 90.
 local TGTPitch is 0.
 local TGTRunway is RWYKSC.
 local TGTSpeed is 150.
+local TGTVSpeed is 0.
 local TimeOfLanding is 0.
 local VNAVMODE is "ALT".
 local VALUETHROTTLE is 0.
@@ -831,26 +854,28 @@ until SafeToExit {
             // **********
             ELSE IF APMODE = "FLR" {
                 // Configure Flare mode
-                IF VNAVMODE <> "PIT" {
-                    SET VNAVMODE TO "PIT".
+                IF VNAVMODE <> "VS" {
+                    SET VNAVMODE TO "VS".
                     SET TGTHeading TO 90.
                     SET PitchAngVelPID:MaxOutput to 0.5.
                     SET PitchAngVelPID:MinOutput to -0.3.
-                    SET PitchAnglePID:KP TO 1.5.
-                    SET PitchAnglePID:Ki TO 0.2.
-                    SET PitchAnglePID:Kd TO 0.05.
-                    SET PitchAnglePID:SETPOINT to 0.
+                    // SET PitchAnglePID:KP TO 1.5.
+                    // SET PitchAnglePID:Ki TO 0.2.
+                    // SET PitchAnglePID:Kd TO 0.05.
+                    // SET PitchAnglePID:SETPOINT to 0.
                     IF KindOfCraft = "Shuttle" SET TGTSpeed TO  90.
                     ELSE                       SET TGTSpeed TO  70.
 
                 }           
                 // Adjust craft flight
                 IF RA > 15 {
-                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 7).
+                    //SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 7).
+                    SET TGTVSpeed to -7.
                     SET BRAKES TO AirSPD > TGTSpeed * 1.1.
                 }
                 ELSE {
-                    SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 0.5).
+                    //SET TGTPitch to PitchAnglePID:UPDATE(TimeNow,SHIP:VERTICALSPEED + 0.5).
+                    SET TGTVSpeed TO -0.5.
                     IF BRAKES {BRAKES OFF.}
                     SET LNAVMODE TO "BNK".
                     SET TGTBank TO 0.
@@ -904,22 +929,31 @@ until SafeToExit {
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
                     SET GSPID:MAXOutput to -GSAng +25.
                     SET GSPID:MINOutput to -GSAng -25.
-                    SET PitchAngVelPID:SETPOINT to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng-1))).
+                    SET TGTPitch to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng-1))).
+                    SET PitchAngVelPID:SETPOINT to TGTPitch.
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
                 }
                 ELSE IF VNAVMODE = "ALT" {
                     SET dAlt to BaroAltitude - TGTAltitude.
-                    SET PitchAnglePID:Setpoint to VSpeedPID:UPDATE(TimeNow,dalt).
-                    SET PitchAngVelPID:SETPOINT TO min(PPA+20,max(PPA-15,PitchAnglePID:UPDATE(TimeNow,Ship:verticalspeed()))).
+                    // SET PitchAnglePID:Setpoint to VSpeedPID:UPDATE(TimeNow,dalt).
+                    // SET PitchAngVelPID:SETPOINT TO min(PPA+20,max(PPA-15,PitchAnglePID:UPDATE(TimeNow,Ship:verticalspeed()))).
+                    SET TGTVSpeed to VSpeedPID:UPDATE(TimeNow,dalt).
+                    SET PitchAngVelPID:SETPOINT TO TGTVSpeed.
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,Ship:verticalspeed()).
                 }
                 ELSE IF VNAVMODE = "PIT" {
                     SET PitchAngVelPID:SETPOINT to  min(PPA+30,max(PPA-15,TGTPitch)).
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
                 }
+                ELSE IF VNAVMODE = "VS" {
+                    SET PitchAngVelPID:SETPOINT TO TGTVSpeed.
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,Ship:verticalspeed()).
+                }                
                 ELSE IF VNAVMODE = "SPU" {
-                    SET PitchAngVelPID:SETPOINT to PPA.
+                    SET TGTPitch to PPA.
+                    SET PitchAngVelPID:SETPOINT to TGTPitch.
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
                 }
-                
-
-                SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
                 SET Elevator TO ElevatorPID:UPDATE(TimeNow,pitchangvel()).
                 
                 // DEAL WITH LNAV
@@ -995,11 +1029,11 @@ until SafeToExit {
                 // Print "T Yaw Vel:          " + Round(yawdamperpid:setpoint,3) + "       " At (0,9).
                 // Print "Yaw Vel:            " + Round(yawangvel(),3) +           "       " At (0,10).
 
-                // Print "Target VSpeed       " + Round(PitchAnglePID:setpoint,3)+ "       " At (0,11).
-                // Print "VSpeed              " + Round(Ship:verticalspeed(),3)+ "       " At (0,12).
-                // Print "Target Pitch:       " + Round(pitchangvelpid:Setpoint,3)+"       " At (0,13).
-                // Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,14).
-                // Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,15).
+                Print "Target VSpeed       " + Round(TGTVSpeed,3)+ "       " At (0,11).
+                Print "VSpeed              " + Round(Ship:verticalspeed(),3)+ "       " At (0,12).
+                Print "Target Pitch:       " + Round(TGTPitch,3)+"       " At (0,13).
+                Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,14).
+                Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,15).
                 // PRINT "Ship: Height:       " + RA AT (0,18). 
                 // print "ALT:RADAR:          " + ALT:RADAR AT (0,19).
 
@@ -1107,19 +1141,21 @@ until SafeToExit {
             SET LabelBNK:TEXT TO "".
             SET LabelPIT:TEXT TO "". 
             SET LabelSPD:TEXT TO "".
+            SET LabelVS:TEXT to "".
         }
         ELSE {
             SET labelMode:text     to "<b><size=17>" + APMODE +" | " + VNAVMODE + " | " + LNAVMODE + " | " + ATMODE +"</size></b>".
             SET LabelWaypointDist:text to ROUND(TerrainGroundDistance(TargetCoord)/1000,1) + " km".
-            SET LabelHDG:TEXT  TO "<b>" + ROUND(TGTHeading,2):TOSTRING + "º</b>".
-            SET LabelALT:TEXT  TO "<b>" + ROUND(TGTAltitude,2):TOSTRING + " m</b>".
-            SET LabelBNK:TEXT TO  "<b>" + ROUND(BankVelPID:Setpoint,2) + "º</b>".
-            SET LabelPIT:TEXT TO  "<b>" + ROUND(PitchAngVelPID:SETPOINT,2) + "º</b>".
-            SET LabelSPD:TEXT TO  "<b>" + ROUND(TGTSpeed) + " m/s | " + ROUND(uiMSTOKMH(TGTSpeed),2) + " km/h</b>".
+            SET LabelHDG:TEXT TO "<b>" + ROUND(TGTHeading,2):TOSTRING + "º</b>".
+            SET LabelALT:TEXT TO "<b>" + ROUND(TGTAltitude,2):TOSTRING + " m</b>".
+            SET LabelBNK:TEXT TO "<b>" + ROUND(BankVelPID:Setpoint,2) + "º</b>".
+            SET LabelPIT:TEXT TO "<b>" + ROUND(TGTPitch,2) + "º</b>".
+            SET LabelSPD:TEXT TO "<b>" + ROUND(TGTSpeed) + " m/s | " + ROUND(uiMSTOKMH(TGTSpeed),2) + " km/h</b>".
+            SET LabelVS:TEXT  TO "<b>" + ROUND(TGTVSpeed,1) + " m/s</b>".
         }
         SET labelAirspeed:text to "<b>Airspeed:</b> " + ROUND(uiMSTOKMH(AirSPD)) + " km/h" +
                                 " | Mach " + Round(Mach(AirSPD),3). 
-        SET labelVSpeed:text to "<b>Vertical speed:</b> " + ROUND(SHIP:VERTICALSPEED) + " m/s".
+        SET labelVSpeed:text to "<b>Vertical speed:</b> " + ROUND(SHIP:VERTICALSPEED,2) + " m/s".
         SET labelLAT:text to "<b>LAT:</b> " + ROUND(SHIP:geoposition:LAT,4) + " º".
         SET labelLNG:text to "<b>LNG:</b> " + ROUND(SHIP:geoposition:LNG,4) + " º".
         
