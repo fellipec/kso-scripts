@@ -542,7 +542,7 @@ ON ABORT {
 
 
 // PID GS
-local GSPID is PIDLOOP(1.5,0.75,0.50,-30,30). 
+local GSPID is PIDLOOP(2.5,0.05,0.03,-30,30). 
 SET GSPID:SETPOINT TO 0.
 
 // PID LOC
@@ -940,14 +940,14 @@ until SafeToExit {
 
                 // DEAL WITH VNAV
 
-                IF AirSPD > 400 { // Ease pitch while supersonic
+                IF KindOfCraft = "Plane" and AirSPD > 400 { // Ease pitch while supersonic
                     SET PitchAngVelPID:maxoutput TO PAVelDefault / 5.
                     SET PitchAngVelPID:minoutput TO -PAVelDefault / 5.
                     set ElevatorPID:KP to ElevatorKPDefault / 5. 
                     set ElevatorPID:KI to ElevatorKIDefault / 10. 
                     set ElevatorPID:KD to ElevatorKDDefault / 10. 
                 }
-                ELSE {
+                ELSE IF KindOfCraft = "Plane" {
                     SET PitchAngVelPID:maxoutput TO PAVelDefault.
                     SET PitchAngVelPID:minoutput TO -PAVelDefault.
                     set ElevatorPID:KP to ElevatorKPDefault . 
@@ -965,7 +965,7 @@ until SafeToExit {
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
                     SET GSPID:MAXOutput to -GSAng +25.
                     SET GSPID:MINOutput to -GSAng -25.
-                    SET TGTPitch to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng-1))).
+                    SET TGTPitch to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng))).
                     SET PitchAngVelPID:SETPOINT to TGTPitch.
                     SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
                 }
@@ -1065,7 +1065,7 @@ until SafeToExit {
 
                 // PRINT "Aileron:            " + ROUND(Aileron,2) +               "       " At (0,5).
 
-                // Print "GS Angle:           " + Round(GSProgAng,3)+              "       " At (0,6).
+                Print "GS Angle:           " + Round(GSProgAng,3)+              "       " At (0,6).
 
                 // Print "Yaw Error:          " + Round(yawerror(),3) +            "       " At (0,8).
                 // Print "T Yaw Vel:          " + Round(yawdamperpid:setpoint,3) + "       " At (0,9).
