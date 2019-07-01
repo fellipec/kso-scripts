@@ -122,7 +122,7 @@ PRINT(TerrainGroundDistance(DeorbitSPKSCRW09)).
 uiBanner("Deorbit","Preparing for atmospheric flight...").
 //LOCK STEERING TO HEADING(90,-Slope-5).
 LOCK STEERING TO LOOKDIRUP(DeorbitSPKSCRW09:POSITION(),SHIP:UP:VECTOR).
-WAIT UNTIL SHIP:ALTITUDE < 12000 OR SHIP:VELOCITY:SURFACE:MAG < 900 OR TerrainGroundDistance(DeorbitSPKSCRW09) < 50000.
+WAIT UNTIL SHIP:ALTITUDE < 12000 OR SHIP:VELOCITY:SURFACE:MAG < 900 OR TerrainGroundDistance(DeorbitSPKSCRW09) < 40000.
 uiBanner("Deorbit","Activating atmospheric autopilot...").
 UNLOCK THROTTLE.
 UNLOCK STEERING.

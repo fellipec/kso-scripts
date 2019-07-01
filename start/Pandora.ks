@@ -6,6 +6,8 @@ local OrbitOptions is lexicon(
 	"C","Exit to command line",
 	"1","Rendez-vous with Skylab",
 	"2","Rendez-vous with ISS",
+    "3","Transfer to Mun",
+    "4","Transfer to Minmus",
 	"X","Return to KSC").
 
 
@@ -18,7 +20,6 @@ UNTIL STOPEXEC {
         radiators on.
     }
     ELSE IF SHIP:STATUS = "ORBITING" {
-        IF STAGE:NUMBER > 1 STAGE.
         rcs off.
         local choice is uiTerminalMenu(OrbitOptions).
         if choice = 1 {
@@ -30,11 +31,11 @@ UNTIL STOPEXEC {
             RUN RENDEZVOUS.
         }
         if choice = 3 {
-            SET TARGET TO VESSEL("MUN").
+            SET TARGET TO BODY("MUN").
             RUN TRANSFER.
         }  
         if choice = 4 {
-            SET TARGET TO VESSEL("MINMUS").
+            SET TARGET TO BODY("MINMUS").
             RUN TRANSFER.
         }    
         else if choice = "X" {
