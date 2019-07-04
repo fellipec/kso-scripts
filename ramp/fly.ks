@@ -960,7 +960,7 @@ until SafeToExit {
                 IF AirSPD < 100 { // Reduces VSpeed on climb if not fast enough
                     SET VSpeedPID:maxoutput to VSDefault / 4.
                 }
-                ELSE {
+                ELSE IF AirSPD > 110 {
                     SET VSpeedPID:maxoutput to VSDefault.
                 }
 
