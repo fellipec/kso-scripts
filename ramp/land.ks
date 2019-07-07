@@ -95,7 +95,7 @@ if ship:status = "ORBITING" {
     SET LandingSite to LATLNG(LandLat,LandLng).
 
     //Define the deorbit periapsis
-    local DeorbitRad to ship:body:radius/2.5.
+    local DeorbitRad to ship:body:radius*1.05.
 
     // Find a phase angle for the landing
     // The landing burning is like a Hohmann transfer, but to an orbit close to the body surface
@@ -109,8 +109,8 @@ if ship:status = "ORBITING" {
     local phiIncManeuver is (IncTravelTime/ship:body:rotationperiod) * 360.
 
     // Deorbit and plane change longitudes
-    Set Deorbit_Long to utilLongitudeTo360(LandLng - 60).
-    Set PlaneChangeLong to utilLongitudeTo360(LandLng - 150).
+    Set Deorbit_Long to utilLongitudeTo360(LandLng - 176).
+    Set PlaneChangeLong to utilLongitudeTo360(LandLng - 266).
 
     // Plane change for landing site
     local vel is velocityat(ship, landTimeToLong(PlaneChangeLong)):orbit.
@@ -142,12 +142,9 @@ if ship:status = "ORBITING" {
     KUNIVERSE:TIMEWARP:CANCELWARP().
     wait until kuniverse:timewarp:issettled.
     uiBanner("Deorbit","Going butt first"). 
-    SAS ON.    
+    SAS OFF.    
     WAIT 3.    
-    SET NAVMODE TO "ORBIT".
-    WAIT 2.
-    SET SASMODE TO "RETROGRADE".
-    WAIT 1.
+    LOCK steering TO RETROGRADE.
     SET NAVMODE TO "SURFACE".
     uiBanner("Deorbit","Retrograde"). 
     PANELS OFF.
@@ -225,7 +222,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     }
     uiBanner("Suicide burn","Steering and waiting for burn."). 
 
-    SAS OFF.
+    UNLOCK STEERING.
     LIGHTS ON. //We want the Kerbals to see where they are going right?
     LEGS OFF. 
 

@@ -20,6 +20,8 @@ if OldIPU < 500 set Config:IPU to 500.
 Local CONSOLEINFO is FALSE.
 uiDebug("CONSOLE OUTPUT IS " + CONSOLEINFO).
 
+local ShortField is false.
+
 //////////////////////////////////////////////
 // Functions to use exclusive with this script
 //////////////////////////////////////////////
@@ -214,7 +216,7 @@ IF SHIP:STATUS = "LANDED" OR SHIP:STATUS = "PRELAUNCH" {
     guiTO:SHOW().
     LOCAL atdone to false.
     SET autoTOYes:ONCLICK TO { guiTO:hide. takeoff().  set atdone to true. }.
-    SET autoTONo:ONCLICK TO { guiTO:hide. wait until ship:altitude > 1000. set atdone to true. }.
+    SET autoTONo:ONCLICK TO { guiTO:hide. wait until ship:altitude > 200. set atdone to true. }.
     wait until atdone.
 }
 
@@ -329,9 +331,11 @@ SET baseselectbuttons:ONRADIOCHANGE TO {
 
     IF B:TEXT = "Space Center" {
         SET TGTRunway to RWYKSC.
+        set ShortField to False.
     }
     IF B:TEXT = "Old airfield" {
         SET TGTRunway to RWYOAF.
+        set ShortField to True.
     }
 }.
 
@@ -672,12 +676,12 @@ IF KindOfCraft = "SHUTTLE" {
     SET ElevatorPID:KD TO 0.100. 
 
     //Roll
-    SET AileronPID:KP TO 0.15.
+    SET AileronPID:KP TO 0.10.
     SET AileronPID:KI TO 0.01.
-    SET AileronPID:KD TO 0.05.
-    SET BankAnglePID:KP to 3.0.
-    SET BankAnglePID:KI to 0.25.
-    SET BankAnglePID:KD to 0.15.
+    SET AileronPID:KD TO 0.01.
+    SET BankAnglePID:KP to 3.5.
+    SET BankAnglePID:KI to 0.15.
+    SET BankAnglePID:KD to 0.05.
     SET BankVelPID:minoutput to -1.
     SET BankVelPID:maxoutput to 1.
 
@@ -843,7 +847,8 @@ until SafeToExit {
 
                 // Checks for excessive airspeed on final. 
                 IF KindOfCraft = "PLANE" {
-                    SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,90)).
+                    if ShortField SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,60)).
+                    else          SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,90)).
                     IF ATMODE <> "OFF" {
                         SET ATMODE to "SPD".
                     }
@@ -880,6 +885,7 @@ until SafeToExit {
                     // SET PitchAnglePID:Kd TO 0.05.
                     // SET PitchAnglePID:SETPOINT to 0.
                     IF KindOfCraft = "SHUTTLE" SET TGTSpeed TO  90.
+                    ELSE IF ShortField         SET TGTSpeed TO  50.
                     ELSE                       SET TGTSpeed TO  70.
 
                 }           
@@ -890,8 +896,14 @@ until SafeToExit {
                     SET BRAKES TO AirSPD > TGTSpeed * 1.1.
                 }
                 ELSE {
-                    SET TGTVSpeed TO -1.
-                    IF BRAKES {BRAKES OFF.}
+                    IF ShortField {
+                        SET TGTVSpeed TO -5.
+                        SET BRAKES TO AirSPD > TGTSpeed.
+                    }
+                    ELSE {
+                        SET TGTVSpeed TO -1.
+                        IF BRAKES {BRAKES OFF.}
+                    }
                     SET LNAVMODE TO "BNK".
                     SET TGTBank TO 0.
                     SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
@@ -969,7 +981,7 @@ until SafeToExit {
                     //SET GSPID:MINOutput to -GSAng -25.
                     // SET TGTPitch to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng))).
                     // SET PitchAngVelPID:SETPOINT to TGTPitch.
-                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,GSProgAng).
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,GSProgAng/2).
                 }
                 ELSE IF VNAVMODE = "ALT" {
                     SET dAlt to BaroAltitude - TGTAltitude.
@@ -1050,7 +1062,7 @@ until SafeToExit {
 
             // Yaw Damper
             IF APMODE = "FLR" AND LNAVMODE = "BNK" AND TGTBank = 0 {            
-                SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,-2*DeltaHeading(90)).
+                SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,-5*DeltaHeading(90)).
             }
             ELSE {
                 SET yawdamperpid:setpoint to yawvelpid:Update(TimeNow,YawError()).

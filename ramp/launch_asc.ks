@@ -13,6 +13,7 @@ runoncepath("lib_parts.ks").
 runoncepath("lib_ui.ks").
 runoncepath("lib_util").
 
+local Liftoff_Time is time:seconds.
 
 //Abort sequence
 ON Abort {
@@ -40,7 +41,7 @@ global launch_tStage is time:seconds.
 // Starting/ending height of gravity turn
 // TODO adjust for atmospheric pressure; this works for Kerbin
 global launch_gt0 is body:atm:height * 0.007. // About 500m in Kerbin
-global launch_gt1 is body:atm:height * 0.6. // About 42000m in Kerbin
+global launch_gt1 is body:atm:height * 0.8. // About 56000m in Kerbin
 
 /////////////////////////////////////////////////////////////////////////////
 // Steering function.
@@ -54,7 +55,10 @@ function ascentSteering {
   local inclin is min(90, max(0, arccos(min(1,max(0,gtPct))))).
   local gtFacing is heading ( hdglaunch, inclin) * r(0,0,180). //180 for shuttles, doesn't matter for rockets.
 
-  if gtPct <= 0 {
+  if time:seconds - Liftoff_Time <= 10 {
+    return heading (ship:heading,90).
+  }
+  else if gtPct <= 0 {
     return heading (hdglaunch,90) + r(0,0,180). //Straight up.
   } else {
     return gtFacing.
