@@ -18,8 +18,6 @@ local OldIPU is Config:IPU.
 if OldIPU < 500 set Config:IPU to 500. 
 
 Local CONSOLEINFO is FALSE.
-uiDebug("CONSOLE OUTPUT IS " + CONSOLEINFO).
-
 local ShortField is false.
 
 //////////////////////////////////////////////
@@ -459,8 +457,8 @@ SET ButtonVSP:Style:WIDTH TO 40.
 SET ButtonVSP:Style:HEIGHT TO 25.
 
 SET ButtonVS:ONCLICK   TO { SET VNAVMODE TO "VS". }.
-SET ButtonVSM:ONCLICK  TO { SET TGTPitch TO ROUND(TGTVSpeed) -1 .}.
-SET ButtonVSP:ONCLICK  TO { SET TGTPitch TO ROUND(TGTVSpeed) +1 .}.
+SET ButtonVSM:ONCLICK  TO { SET TGTVSpeed TO ROUND(TGTVSpeed) -1 .}.
+SET ButtonVSP:ONCLICK  TO { SET TGTVSpeed TO ROUND(TGTVSpeed) +1 .}.
 
 
 
@@ -757,6 +755,11 @@ local ILSVEC is 0.
 // MAIN LOOP
 // *********
 
+//ILS2 Variables
+local RWYStart is RWYKSC.
+local RWYEnd is latlng(-0.0502693941040746,-74.4905610465966).
+local TGTRWY is RWYEnd:position - RWYStart:position.
+
 partsDisarmsChutes(). //We don't want any chute deploing while flying, right?
 local AirSPD is ship:airspeed.
 local t0 is Time:Seconds.
@@ -788,6 +791,10 @@ until SafeToExit {
         set BaroAltitude to ship:altitude.
         set RA to RadarAltimeter().
         set PPA To ProgradePitchAngle().
+
+        // SET TGTRWY to RWYEnd:position - RWYStart:position.
+        // SET ILSVEC TO VECDRAW(RWYStart:POSITION(),TGTRWY,magenta,"",1,true,30).
+        // print(TGTRWY:direction).
 
         IF APATEnabled {
             IF SAS { SAS OFF. }
@@ -848,6 +855,83 @@ until SafeToExit {
                 // Checks for excessive airspeed on final. 
                 IF KindOfCraft = "PLANE" {
                     if ShortField SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,60)).
+                    else          SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,70)).
+                    IF ATMODE <> "OFF" {
+                        SET ATMODE to "SPD".
+                    }
+                    if      AirSPD > TGTSpeed*1.01 
+                            and ship:control:pilotmainthrottle < 0.1 brakes on.
+                    else if AirSPD < TGTSpeed 
+                            or  ship:control:pilotmainthrottle > 0.4 brakes off. 
+                }
+                ELSE IF KindOfCraft = "SHUTTLE" { 
+                    IF SHUTTLEWITHJETS {
+                        SET TGTSpeed to max(SQRT(TGTAltitude)*6,100).
+                        If AirSPD < 300 or TGTSpeed < 300 SET ATMODE TO "SPD".
+                        IF ATMODE = "SPD" SET TGTSpeed to min(SQRT(TGTAltitude)*6,340).
+                    }
+                    ELSE {
+                        SET TGTSpeed to max(SQRT(TGTAltitude)*9,100).
+                        SET ATMODE to "OFF".
+                    }
+                    SET BRAKES to AirSPD > TGTSpeed * 1.1.
+                }
+            }
+
+            ELSE IF APMODE = "ILS2" {
+                SET TargetCoord TO RWYStart.  // Change to a vector from one threshold to another              
+                SET TGTRWY to RWYStart - RWYEnd.
+                SET ILSVEC TO VECDRAW(RWYStart:POSITION(),TGTRWY,magenta,"",1,true,30).
+                SET TGTAltitude to Glideslope(TGTRunway,GSAng).
+                IF KindOfCraft = "SHUTTLE" {
+                    local GSProgAngSignal is 1.
+                    IF VDOT(SHIP:UP:VECTOR,vxcl(ship:facing:starvector,ship:velocity:surface):normalized) < VDOT(SHIP:UP:VECTOR,TGTRunway:AltitudePosition(FlareAltMSL/2):normalized) {
+                        SET GSProgAngSignal TO -1.
+                    }
+                    set GSProgAng to VANG(TGTRunway:Position,vxcl(ship:facing:starvector,ship:velocity:surface)) * GSProgAngSignal.
+                    SET VNAVMODE TO "GS".
+                }
+                else {
+                    //Checks if below GS
+                    IF (NOT GSLocked) AND (BaroAltitude < TGTAltitude) {                
+                        IF KindOfCraft = "SHUTTLE" { 
+                            SET TGTPitch TO -GSAng/4. 
+                            SET VNAVMODE TO "PIT".
+                        }
+                        ELSE { 
+                            SET TGTAltitude TO (BaroAltitude + TGTAltitude) / 2.
+                            SET VNAVMODE TO "ALT".
+                        } 
+                    }
+                    ELSE {
+                        SET VNAVMODE TO "ALT".
+                        GSLocked ON.
+                    }
+                }
+                //Checks distance from centerline
+                //(-0.0502693941040746,-74.4905610465966)
+                
+                local GDist to TerrainGroundDistance(TargetCoord).
+                if GDist < MinGDist SET MinGDist to GDist.
+                local AllowedDeviation is max(MinGDist * sin(0.3),15).
+                SET CLDist TO CenterLineDistance(TGTRunway).
+                IF ABS(CLDist) < AllowedDeviation {
+                    SET LNAVMODE TO "HDG".
+                    SET TGTHeading to 90.
+                } 
+                ELSE IF abs(CLDist) < GDist/3 {
+                    SET TGTHeading TO ABS(90 + arcsin(CLDist/(GDist/3))).
+                    SET LNAVMODE TO "HDG". 
+                }
+                ELSE {
+                    SET TGTHeading TO 90 + ((CLDist/ABS(CLDist))*90). // 0 or 180 heading, depending if ship is north or south of runway.
+                    SET LNAVMODE TO "HDG".
+                } 
+
+
+                // Checks for excessive airspeed on final. 
+                IF KindOfCraft = "PLANE" {
+                    if ShortField SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,60)).
                     else          SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,90)).
                     IF ATMODE <> "OFF" {
                         SET ATMODE to "SPD".
@@ -870,6 +954,9 @@ until SafeToExit {
                     SET BRAKES to AirSPD > TGTSpeed * 1.1.
                 }
             }
+
+
+
             // **********
             // FLARE MODE
             // **********
@@ -1069,45 +1156,6 @@ until SafeToExit {
             }
             
             SET Rudder TO YawDamperPID:UPDATE(TimeNow, yawangvel()).
-           
-
-                // PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       " at (0,1).
-                // PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,2).
-
-                // PRINT "T Bank Vel:         " + round(AileronPID:SETPOINT,3) +   "       " At (0,3).
-                // PRINT "Bank Vel:           " + ROUND(BankAngVel(),2) +          "       " at (0,4).
-
-                // PRINT "Aileron:            " + ROUND(Aileron,2) +               "       " At (0,5).
-
-                Print "GS Angle:           " + Round(GSProgAng,3)+              "       " At (0,6).
-
-                // Print "Yaw Error:          " + Round(yawerror(),3) +            "       " At (0,8).
-                // Print "T Yaw Vel:          " + Round(yawdamperpid:setpoint,3) + "       " At (0,9).
-                // Print "Yaw Vel:            " + Round(yawangvel(),3) +           "       " At (0,10).
-
-                Print "Target VSpeed       " + Round(TGTVSpeed,3)+ "       " At (0,11).
-                Print "VSpeed              " + Round(Ship:verticalspeed(),3)+ "       " At (0,12).
-                Print "Target Pitch:       " + Round(TGTPitch,3)+"       " At (0,13).
-                Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,14).
-                Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,15).
-                // PRINT "Ship: Height:       " + RA AT (0,18). 
-                // print "ALT:RADAR:          " + ALT:RADAR AT (0,19).
-
-                // PRINT "SHIP:GEOPOSITION:TERRAINHEIGHT:       " + SHIP:GEOPOSITION:TERRAINHEIGHT AT (0,20). 
-                // PRINT "SHIP:GEOPOSITION:                     " + SHIP:GEOPOSITION AT (0,21). 
-
-                // LOCAL q IS ship:geoposition.
-
-                // PRINT "Q:TERRAINHEIGHT:       " + q:TERRAINHEIGHT AT (0,22). 
-                // PRINT "Q:                     " + q AT (0,23). 
-
-
-                // Print "Center Line Dist:   " + Round(CLDist,3) +               "       " At (0,17).
-
-                // LOG TimeNow + ";" +
-                //     GSPID:input + ";" +
-                //     GSPID:output TO "0:/PID.CSV".
-
 
             // APPLY CONTROLS
             SET SHIP:CONTROL:ROLL TO Aileron. 
@@ -1232,6 +1280,33 @@ until SafeToExit {
             PRINT "Ship: Altitude:     " + BaroAltitude AT (0,12).
             PRINT "Ship: Height:       " + RA AT (0,13). 
             PRINT "GS Altitude: " + ROUND(Glideslope(TGTRunway,GSAng),2) AT (0,30).
+            PRINT "T Bank:             " + round(BankVelPID:Setpoint,3) +   "       " at (0,14).
+            PRINT "Bank:               " + ROUND(BankAngle(),2)         +   "       " At (0,15).
+
+            PRINT "T Bank Vel:         " + round(AileronPID:SETPOINT,3) +   "       " At (0,16).
+            PRINT "Bank Vel:           " + ROUND(BankAngVel(),2) +          "       " at (0,17).
+
+            PRINT "Aileron:            " + ROUND(Aileron,2) +               "       " At (0,18).
+
+            Print "GS Angle:           " + Round(GSProgAng,3)+              "       " At (0,19).
+
+            Print "Yaw Error:          " + Round(yawerror(),3) +            "       " At (0,20).
+            Print "T Yaw Vel:          " + Round(yawdamperpid:setpoint,3) + "       " At (0,21).
+            Print "Yaw Vel:            " + Round(yawangvel(),3) +           "       " At (0,22).
+
+            Print "Target VSpeed       " + Round(TGTVSpeed,3)+ "       " At (0,23).
+            Print "VSpeed              " + Round(Ship:verticalspeed(),3)+ "       " At (0,24).
+            Print "Target Pitch:       " + Round(TGTPitch,3)+"       " At (0,25).
+            Print "T Pitch Vel:        " + Round(ElevatorPID:setpoint,3)+   "       " At (0,26).
+            Print "Pitch Vel:          " + Round(pitchangvel(),3) +         "       " At (0,27).
+            PRINT "Ship: Height:       " + RA AT (0,28). 
+            print "ALT:RADAR:          " + ALT:RADAR AT (0,29).
+
+            PRINT "SHIP:GEOPOSITION:TERRAINHEIGHT:       " + SHIP:GEOPOSITION:TERRAINHEIGHT AT (0,30). 
+            PRINT "SHIP:GEOPOSITION:                     " + SHIP:GEOPOSITION AT (0,31). 
+
+            Print "Center Line Dist:   " + Round(CLDist,3) +               "       " At (0,33).
+
         }
         WAIT 0. //Next loop only in next physics tick 
         set ShipStatus to ship:status.        
@@ -1268,7 +1343,7 @@ until SafeToExit {
             uiBanner("Fly","Braking!").
             // We didn't bounce, apply brakes
             brakes on.
-            chutes on.
+            if Ship:airspeed > 90 chutes on.
             SET SHIP:CONTROL:WHEELSTEER to SHIP:CONTROL:YAW.
             if partsReverseThrust() set ship:control:pilotmainthrottle to 1.
             if ship:groundspeed < 10 set ship:control:pilotmainthrottle to 0.
