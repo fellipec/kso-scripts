@@ -59,6 +59,7 @@ function GetCloser {
       wait until utilIsShipFacing(steerDir:vector,1,1).
       lock throttle to 1.
       set dot to vdot(target:position, velR).
+      wait 0.
   }
   lock throttle to 0.
 

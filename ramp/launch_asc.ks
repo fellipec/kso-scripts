@@ -40,8 +40,8 @@ global launch_tStage is time:seconds.
 
 // Starting/ending height of gravity turn
 // TODO adjust for atmospheric pressure; this works for Kerbin
-global launch_gt0 is body:atm:height * 0.007. // About 500m in Kerbin
-global launch_gt1 is body:atm:height * 0.8. // About 56000m in Kerbin
+global launch_gt0 is body:atm:height * 0.002. // About 140m in Kerbin
+global launch_gt1 is body:atm:height * 0.857. // About 60000m in Kerbin
 
 /////////////////////////////////////////////////////////////////////////////
 // Steering function.
@@ -52,7 +52,8 @@ function ascentSteering {
   local gtPct is (ship:altitude - launch_gt0) / (launch_gt1 - launch_gt0).
 
   // Ideal gravity-turn azimuth (inclination) and facing at present altitude.
-  local inclin is min(90, max(0, arccos(min(1,max(0,gtPct))))).
+  //local inclin is min(90, max(0, arccos(min(1,max(0,gtPct))))).
+  local inclin is min(90, max(0, arcsin(1-(min(1,max(0,gtPct)))))).
   local gtFacing is heading ( hdglaunch, inclin) * r(0,0,180). //180 for shuttles, doesn't matter for rockets.
 
   if time:seconds - Liftoff_Time <= 10 {
@@ -217,6 +218,7 @@ ascentFairing(). wait launch_tick.
 // Give power and communication to the ship
 fuelcells on.
 panels on.
+radiators on.
 partsExtendAntennas().
 wait launch_tick.
 // Release controls. Turn on RCS to help steer to circularization burn.

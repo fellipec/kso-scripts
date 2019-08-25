@@ -871,7 +871,7 @@ until SafeToExit {
                         IF ATMODE = "SPD" SET TGTSpeed to min(SQRT(TGTAltitude)*6,340).
                     }
                     ELSE {
-                        SET TGTSpeed to max(SQRT(TGTAltitude)*9,100).
+                        SET TGTSpeed to max(SQRT(TGTAltitude)*11,100).
                         SET ATMODE to "OFF".
                     }
                     SET BRAKES to AirSPD > TGTSpeed * 1.1.
