@@ -5,7 +5,6 @@ SET STEERINGMANAGER:PITCHPID:KD TO 1.
 SET STEERINGMANAGER:YAWPID:KD TO 1.
 SET STEERINGMANAGER:ROLLPID:KD TO 1.
 
-
 runoncepath("lib_ui").
 
 local OrbitOptions is lexicon(
@@ -16,8 +15,8 @@ local OrbitOptions is lexicon(
 
 IF ship:status = "PRELAUNCH" {
 	RUN LAUNCH_ASC(200000).
-    LIGHTS ON.
-    STAGE.
+    IF STAGE:NUMBER > 1 STAGE. // Discard the tank
+	BAYS ON.
 	reboot.
 }
 
@@ -33,6 +32,9 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-8).
+		run deorbitsp(-10,15).
 	}
+}
+ELSE IF SHIP:STATUS = "FLYING" {
+	run deorbitsp(-10,15).
 }

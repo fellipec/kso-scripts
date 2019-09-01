@@ -71,10 +71,8 @@ function ascentSteering {
 /////////////////////////////////////////////////////////////////////////////
 
 function ascentThrottle {
-  // angle of attack
-  local aoa is vdot(ship:facing:vector, ship:velocity:surface).
   // how far through the soup are we?
-  local atmPct is ship:altitude / (body:atm:height+1).
+  local atmPct is ship:q.
   local spd is ship:airspeed.
 
   // TODO adjust cutoff for atmospheric pressure; this works for kerbin
@@ -136,6 +134,9 @@ function ascentStaging {
     stage. 
     set launch_tStage to time:seconds.
     uiBanner("Launch","Stage " + ThisStage + " activated").
+  }
+  else if Nsrb = 0 and launch_tSrbSep = 0 {
+    set launch_tSrbSep to time:seconds. // If there is no SRB, set them to already separeted 
   }
   
 
@@ -220,6 +221,7 @@ fuelcells on.
 panels on.
 radiators on.
 partsExtendAntennas().
+partsEnableFissionReactors().
 wait launch_tick.
 // Release controls. Turn on RCS to help steer to circularization burn.
 unlock steering.

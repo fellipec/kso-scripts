@@ -42,6 +42,18 @@ FUNCTION partsEnableReactionWheels {
     }.
 }
 
+Function partsEnableFissionReactors {
+    FOR P IN SHIP:PARTS {
+        IF P:MODULES:CONTAINS("FissionReactor") {
+            LOCAL M IS P:GETMODULE("FissionReactor").
+            FOR A IN M:ALLACTIONNAMES() {
+                IF A:CONTAINS("Start Reactor") { M:DOACTION(A,True). }
+            }.
+        }
+    }.
+}
+
+
 FUNCTION partsRetractRadiators {
     //If you want to turn on or off all the radiators you can use the built in variable RADIATORS, ie:
     // RADIATORS ON. 

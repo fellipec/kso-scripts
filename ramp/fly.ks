@@ -329,10 +329,12 @@ SET baseselectbuttons:ONRADIOCHANGE TO {
 
     IF B:TEXT = "Space Center" {
         SET TGTRunway to RWYKSC.
+        SET Threshold to THSHKSC.
         set ShortField to False.
     }
     IF B:TEXT = "Old airfield" {
         SET TGTRunway to RWYOAF.
+        SET Threshold to THSHOAF.
         set ShortField to True.
     }
 }.
@@ -601,6 +603,8 @@ local Rudder is 0.
 global RWYKSC is latlng(-0.04807,-74.72).
 global RWYKSC_SHUTTLE is latlng(-0.04807,-74.82).
 global RWYOAF is latlng(-1.51764918920989,-71.9565681001265).
+global THSHKSC is LATLNG(-0.048777655211155,-74.7123829355129).
+global THSHOAF is RWYOAF.
 
 // Defauts
 local APATEnabled is TRUE.
@@ -627,6 +631,7 @@ local MaxAoA is 20.
 local MaxGAllowed is 7.
 local MaxGProt is False.
 local MinGDist is 50000.
+local MinTHRSDist is 100000.
 local PAVelDefault is 0. // Pitch Angle Velocity Default
 local PitchingDown is 1.
 local PPA is 0. //Prograde Pitch Angle
@@ -647,6 +652,8 @@ local TGTPitch is 0.
 local TGTRunway is RWYKSC.
 local TGTSpeed is 150.
 local TGTVSpeed is 0.
+local THRSDist is 0.
+local Threshold is THSHKSC.
 local TimeOfLanding is 0.
 local VNAVMODE is "ALT".
 local VALUETHROTTLE is 0.
@@ -956,11 +963,13 @@ until SafeToExit {
             }
 
 
-
             // **********
             // FLARE MODE
             // **********
             ELSE IF APMODE = "FLR" {
+                SET THRSDist TO TerrainGroundDistance(Threshold).
+                if MinTHRSDist > THRSDist SET MinTHRSDist TO THRSDist.
+
                 // Configure Flare mode
                 IF VNAVMODE <> "VS" {
                     SET VNAVMODE TO "VS".
@@ -977,7 +986,11 @@ until SafeToExit {
 
                 }           
                 // Adjust craft flight
-                IF RA > 15 {
+                IF RA < 30 AND MinTHRSDist > 40 {
+                    SET TGTVSpeed to 0.
+                    BRAKES OFF.
+                }
+                ELSE IF RA > 15 {
                     IF KindOfCraft = "SHUTTLE" SET TGTVSpeed to -9.
                     ELSE                       SET TGTVSpeed to -6.
                     SET BRAKES TO AirSPD > TGTSpeed * 1.1.
