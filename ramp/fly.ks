@@ -154,6 +154,8 @@ Function PitchLimit {
 FUNCTION TakeOff {
     
     local LandedAlt is ship:altitude.
+    local mhdg is round(MagHeading()).
+    if mhdg > 86 and mhdg < 94 set mhdg to 90.
     sas off.
     brakes off.
     lights on.
@@ -161,15 +163,17 @@ FUNCTION TakeOff {
     stage.
     lock throttle to 1.
     local P is min(30,max(10,PitchLimit())).
-    LOCK STEERING TO HEADING(MagHeading(), 0).
+    LOCK STEERING TO HEADING(mhdg, 0).
+    LOCK WHEELSTEERING TO mhdg.
     wait until ship:airspeed > 50.
-    LOCK STEERING TO HEADING(MagHeading(), P).
+    LOCK STEERING TO HEADING(mhdg, P).
     wait until ship:altitude > LandedAlt + 30.
     gear off.
     wait until ship:altitude > LandedAlt + 100.
     lights off.
     
     unlock steering.
+    unlock wheelSteering.
     wait 0.
     sas on.
     unlock throttle.
@@ -618,6 +622,7 @@ local dHeading is 0.
 local ElevatorKPDefault is 0.
 local ElevatorKIDefault is 0.
 local ElevatorKDDefault is 0. 
+local ElevatorMaxedTime is 0. //Keep track of the time tha Elevator is 1.
 local FLAREALT is 150.
 local GSAng is 5.
 local GSProgAng is 0.
@@ -644,6 +649,7 @@ local RCSEnableAlt is 12500.
 local ShipStatus is Ship:Status.
 local ShipResources is "".
 local ShuttleWithJets is False.
+local StallSpeed is 70.
 local TargetCoord is RWYKSC.
 local TGTAltitude is 1000.
 local TGTBank is 0.
@@ -993,7 +999,7 @@ until SafeToExit {
                 ELSE IF RA > 15 {
                     IF KindOfCraft = "SHUTTLE" SET TGTVSpeed to -9.
                     ELSE                       SET TGTVSpeed to -6.
-                    SET BRAKES TO AirSPD > TGTSpeed * 1.1.
+                    SET BRAKES TO AirSPD > max(TGTSpeed,StallSpeed) * 1.025.
                 }
                 ELSE {
                     IF ShortField {
@@ -1002,7 +1008,7 @@ until SafeToExit {
                     }
                     ELSE {
                         SET TGTVSpeed TO -1.
-                        IF BRAKES {BRAKES OFF.}
+                        SET BRAKES TO AirSPD > TGTSpeed.
                     }
                     SET LNAVMODE TO "BNK".
                     SET TGTBank TO 0.
@@ -1055,11 +1061,11 @@ until SafeToExit {
                 // DEAL WITH VNAV
 
                 IF KindOfCraft = "PLANE" and AirSPD > 400 { // Ease pitch while supersonic
-                    SET PitchAngVelPID:maxoutput TO PAVelDefault / 5.
-                    SET PitchAngVelPID:minoutput TO -PAVelDefault / 5.
-                    set ElevatorPID:KP to ElevatorKPDefault / 5. 
-                    set ElevatorPID:KI to ElevatorKIDefault / 10. 
-                    set ElevatorPID:KD to ElevatorKDDefault / 10. 
+                    SET PitchAngVelPID:maxoutput TO PAVelDefault / 2.
+                    SET PitchAngVelPID:minoutput TO -PAVelDefault / 2.
+                    set ElevatorPID:KP to ElevatorKPDefault / 2. 
+                    set ElevatorPID:KI to ElevatorKIDefault / 5. 
+                    set ElevatorPID:KD to ElevatorKDDefault / 5. 
                 }
                 ELSE IF KindOfCraft = "PLANE" {
                     SET PitchAngVelPID:maxoutput TO PAVelDefault.
@@ -1077,16 +1083,10 @@ until SafeToExit {
                 }
 
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
-                    //SET GSPID:MAXOutput to -GSAng +25.
-                    //SET GSPID:MINOutput to -GSAng -25.
-                    // SET TGTPitch to min(PPA+30,max(PPA-15,GSPID:UPDATE(TimeNow, GSProgAng))).
-                    // SET PitchAngVelPID:SETPOINT to TGTPitch.
                     SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,GSProgAng/2).
                 }
                 ELSE IF VNAVMODE = "ALT" {
                     SET dAlt to BaroAltitude - TGTAltitude.
-                    // SET PitchAnglePID:Setpoint to VSpeedPID:UPDATE(TimeNow,dalt).
-                    // SET PitchAngVelPID:SETPOINT TO min(PPA+20,max(PPA-15,PitchAnglePID:UPDATE(TimeNow,Ship:verticalspeed()))).
                     SET TGTVSpeed to VSpeedPID:UPDATE(TimeNow,dalt).
                     SET PitchAngVelPID:SETPOINT TO TGTVSpeed.
                     SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,Ship:verticalspeed()).
@@ -1105,6 +1105,18 @@ until SafeToExit {
                     SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,PitchAngle()).
                 }
                 SET Elevator TO ElevatorPID:UPDATE(TimeNow,pitchangvel()).
+                
+                // Adjust Stall speed
+                If Elevator = 1 and ElevatorMaxedTime = 0 {
+                    Set ElevatorMaxedTime to TimeNow.
+                }
+                Else If Elevator = 1 and TimeNow - ElevatorMaxedTime > 3 {
+                    Set StallSpeed to airspeed * 1.1.
+                    Set ElevatorMaxedTime to 0.
+                }
+                Else If Elevator < 1 {
+                    Set ElevatorMaxedTime to 0.
+                }
                 
                 // DEAL WITH LNAV
 
@@ -1182,7 +1194,7 @@ until SafeToExit {
 
             IF ATMODE = "SPD" {
                 IF NOT AUTOTHROTTLE { SET AUTOTHROTTLE TO TRUE .}
-                SET VALUETHROTTLE TO ThrottlePID:UPDATE(TimeNow,AirSPD - TGTSpeed).
+                SET VALUETHROTTLE TO ThrottlePID:UPDATE(TimeNow,AirSPD - max(TGTSpeed,StallSpeed)).
                 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO VALUETHROTTLE.
             }
             ELSE IF ATMODE = "MCT" {
