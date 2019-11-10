@@ -1,10 +1,5 @@
 @lazyglobal off.
 
-SET STEERINGMANAGER:MAXSTOPPINGTIME TO 10.
-SET STEERINGMANAGER:PITCHPID:KD TO 2.
-SET STEERINGMANAGER:YAWPID:KD TO 2.
-SET STEERINGMANAGER:ROLLPID:KD TO 2.
-
 
 runoncepath("lib_ui").
 
@@ -16,7 +11,7 @@ local OrbitOptions is lexicon(
 	"R","Reboot").
 
 IF ship:status = "PRELAUNCH" {
-	RUN LAUNCH_ASC(240000).
+	RUN LAUNCH_ASC(200000).
 	IF STAGE:NUMBER > 2 STAGE.
 	WAIT 1.
 	IF STAGE:NUMBER = 1 BAYS ON.
@@ -36,7 +31,7 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(0,20).
+		run deorbitsp(-6.5,20).
 	}
 	else if choice = "R" {
 		REBOOT.

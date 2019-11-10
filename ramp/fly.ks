@@ -673,7 +673,7 @@ IF KindOfCraft = "SHUTTLE" {
     SET TGTRunway TO RWYKSC_SHUTTLE.
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
-    SET FLAREALT TO 275.
+    SET FLAREALT TO 300.
     // Pitch 
     SET GSPID:MAXOutput to -GSAng +25.
     SET GSPID:MINOutput to -GSAng -25.
@@ -884,7 +884,7 @@ until SafeToExit {
                         IF ATMODE = "SPD" SET TGTSpeed to min(SQRT(TGTAltitude)*6,340).
                     }
                     ELSE {
-                        SET TGTSpeed to max(SQRT(TGTAltitude)*11,100).
+                        SET TGTSpeed to max(SQRT(TGTAltitude)*10,100).
                         SET ATMODE to "OFF".
                     }
                     SET BRAKES to AirSPD > TGTSpeed * 1.1.
@@ -986,7 +986,7 @@ until SafeToExit {
                     // SET PitchAnglePID:Ki TO 0.2.
                     // SET PitchAnglePID:Kd TO 0.05.
                     // SET PitchAnglePID:SETPOINT to 0.
-                    IF KindOfCraft = "SHUTTLE" SET TGTSpeed TO  90.
+                    IF KindOfCraft = "SHUTTLE" SET TGTSpeed TO  110.
                     ELSE IF ShortField         SET TGTSpeed TO  50.
                     ELSE                       SET TGTSpeed TO  70.
 
@@ -997,7 +997,7 @@ until SafeToExit {
                     BRAKES OFF.
                 }
                 ELSE IF RA > 15 {
-                    IF KindOfCraft = "SHUTTLE" SET TGTVSpeed to -9.
+                    IF KindOfCraft = "SHUTTLE" SET TGTVSpeed to -15.
                     ELSE                       SET TGTVSpeed to -6.
                     SET BRAKES TO AirSPD > max(TGTSpeed,StallSpeed) * 1.025.
                 }
@@ -1007,6 +1007,7 @@ until SafeToExit {
                         SET BRAKES TO AirSPD > TGTSpeed.
                     }
                     ELSE {
+                        IF KindOfCraft = "SHUTTLE" SET TGTVSpeed TO -2.
                         SET TGTVSpeed TO -1.
                         SET BRAKES TO AirSPD > TGTSpeed.
                     }
@@ -1368,7 +1369,7 @@ until SafeToExit {
             uiBanner("Fly","Braking!").
             // We didn't bounce, apply brakes
             brakes on.
-            if Ship:airspeed > 90 chutes on.
+            if Ship:airspeed > 55 chutes on. // 200km/h
             SET SHIP:CONTROL:WHEELSTEER to SHIP:CONTROL:YAW.
             if partsReverseThrust() set ship:control:pilotmainthrottle to 1.
             if ship:groundspeed < 10 set ship:control:pilotmainthrottle to 0.
