@@ -578,11 +578,11 @@ local BankAnglePID is PIDLOOP(2.0,0.20,0.50,-33,33).
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
-local BankVelPID is PIDLOOP(0.0450,0.0008,0.0010,-0.7,0.7). 
+local BankVelPID is PIDLOOP(0.0550,0.0008,0.0010,-0.7,0.7). 
 SET BankVelPID:SETPOINT TO 0. 
 
 //PID Aileron  
-local AileronPID is PIDLOOP(0.12,0.008,0.001,-1,1). 
+local AileronPID is PIDLOOP(0.15,0.008,0.001,-1,1). 
 SET AileronPID:SETPOINT TO 0. 
 
 //PID Yaw Damper
@@ -590,7 +590,7 @@ local YawDamperPID is PIDLOOP(1,0.3,0.1,-1,1).
 SET YawDamperPID:SETPOINT TO 0. 
 
 // PID YawVel
-local YawVelPID is PIDLOOP(0.04,0.02,0.01,-0.8,0.8). 
+local YawVelPID is PIDLOOP(0.05,0.03,0.025,-0.8,0.8). 
 SET YawVelPID:SETPOINT TO 0. 
 
 //PID Throttle
@@ -624,6 +624,7 @@ local ElevatorKIDefault is 0.
 local ElevatorKDDefault is 0. 
 local ElevatorMaxedTime is 0. //Keep track of the time tha Elevator is 1.
 local FLAREALT is 150.
+local FinalFlareStarted is False.
 local GSAng is 5.
 local GSProgAng is 0.
 local GSLocked is False.
@@ -673,7 +674,7 @@ IF KindOfCraft = "SHUTTLE" {
     SET TGTRunway TO RWYKSC_SHUTTLE.
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
-    SET FLAREALT TO 300.
+    SET FLAREALT TO 380.
     // Pitch 
     SET GSPID:MAXOutput to -GSAng +25.
     SET GSPID:MINOutput to -GSAng -25.
@@ -817,6 +818,7 @@ until SafeToExit {
             // ********
 
             ELSE IF APMODE = "ILS" {
+                IF FinalFlareStarted SET FinalFlareStarted to False.
                 SET TargetCoord TO TGTRunway.                
                 SET TGTAltitude to Glideslope(TGTRunway,GSAng).
                 IF KindOfCraft = "SHUTTLE" {
@@ -986,7 +988,7 @@ until SafeToExit {
                     // SET PitchAnglePID:Ki TO 0.2.
                     // SET PitchAnglePID:Kd TO 0.05.
                     // SET PitchAnglePID:SETPOINT to 0.
-                    IF KindOfCraft = "SHUTTLE" SET TGTSpeed TO  110.
+                    IF KindOfCraft = "SHUTTLE" SET TGTSpeed TO  130.
                     ELSE IF ShortField         SET TGTSpeed TO  50.
                     ELSE                       SET TGTSpeed TO  70.
 
@@ -996,7 +998,8 @@ until SafeToExit {
                     SET TGTVSpeed to 0.
                     BRAKES OFF.
                 }
-                ELSE IF RA > 15 {
+                ELSE IF (NOT FinalFlareStarted) OR (RA > (FLAREALT/20))   {
+                    SET FinalFlareStarted TO True.
                     IF KindOfCraft = "SHUTTLE" SET TGTVSpeed to -15.
                     ELSE                       SET TGTVSpeed to -6.
                     SET BRAKES TO AirSPD > max(TGTSpeed,StallSpeed) * 1.025.
