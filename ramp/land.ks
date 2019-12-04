@@ -153,6 +153,7 @@ if ship:status = "ORBITING" {
     BAYS OFF.
     DEPLOYDRILLS OFF.
     LEGS OFF.
+    GEAR OFF.
     partsRetractAntennas().    
 }
 
@@ -225,7 +226,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
 
     UNLOCK STEERING.
     LIGHTS ON. //We want the Kerbals to see where they are going right?
-    LEGS OFF. 
+    LEGS OFF. GEAR OFF.
 
     // Throttle and Steering
     local tVal is 0.
@@ -308,7 +309,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
 
 
         // Deploy Legs
-        IF BurnStarted AND dTime < 5 OR landRadarAltimeter() < FinalBurnHeight LEGS ON.
+        IF BurnStarted AND dTime < 5 OR landRadarAltimeter() < FinalBurnHeight { LEGS ON. GEAR ON. }
 
         if DrawDebugVectors {
             SET DRAWSV TO VECDRAW(v(0,0,0),SteerVector, red, "", 1, true, 1). // Steering
