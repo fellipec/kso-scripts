@@ -4,6 +4,11 @@
 // Execute a maneuver node, warping if necessary to save time.
 /////////////////////////////////////////////////////////////////////////////
 
+
+// Quick save just for safety. We never know when KSP will mess with our saves.
+WAIT UNTIL KUniverse:CANQUICKSAVE.
+KUniverse:QUICKSAVETO("RAMP-Before Node of  "+ SHIP:name).
+
 run once lib_ui.
 run once lib_util.
 // Configuration constants; these are pre-set for automated missions; if you

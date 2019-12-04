@@ -15,8 +15,12 @@ local OrbitOptions is lexicon(
 
 IF ship:status = "PRELAUNCH" {
 	RUN LAUNCH_ASC(180000).
-    IF STAGE:NUMBER > 2 STAGE. // Discard the tank
+    UNTIL STAGE:NUMBER <= 2 { STAGE. WAIT 1.} // Discard the tank
 	BAYS ON.
+	WAIT 5.
+	runOncePath("lib_parts").
+	partsExtendAntennas().
+	SAS ON.
 	reboot.
 }
 

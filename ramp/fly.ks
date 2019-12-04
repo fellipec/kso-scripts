@@ -674,7 +674,7 @@ IF KindOfCraft = "SHUTTLE" {
     SET TGTRunway TO RWYKSC_SHUTTLE.
     SET TargetCoord TO TGTRunway.
     SET LabelWaypoint:Text TO "Kerbin Space Center Runway 09".
-    SET FLAREALT TO 380.
+    SET FLAREALT TO 300.
     // Pitch 
     SET GSPID:MAXOutput to -GSAng +25.
     SET GSPID:MINOutput to -GSAng -25.
@@ -711,7 +711,7 @@ IF KindOfCraft = "SHUTTLE" {
     FOR rsr IN ShipResources {
         IF rsr:name = "IntakeAir" {
             ShuttleWithJets ON.
-            SET FLAREALT TO 150.
+            SET FLAREALT TO 200.
         }
     }
 
@@ -988,17 +988,20 @@ until SafeToExit {
                     // SET PitchAnglePID:Ki TO 0.2.
                     // SET PitchAnglePID:Kd TO 0.05.
                     // SET PitchAnglePID:SETPOINT to 0.
-                    IF KindOfCraft = "SHUTTLE" SET TGTSpeed TO  130.
+                    IF KindOfCraft = "SHUTTLE" {
+                        IF ShuttleWithJets SET TGTSpeed TO  090.
+                        ELSE               SET TGTSpeed TO  120.
+                        }
                     ELSE IF ShortField         SET TGTSpeed TO  50.
                     ELSE                       SET TGTSpeed TO  70.
 
                 }           
                 // Adjust craft flight
-                IF RA < 30 AND MinTHRSDist > 40 {
+                IF RA < 30 AND MinTHRSDist > 50 {
                     SET TGTVSpeed to 0.
                     BRAKES OFF.
                 }
-                ELSE IF (NOT FinalFlareStarted) OR (RA > (FLAREALT/20))   {
+                ELSE IF (NOT FinalFlareStarted) OR (RA > (FLAREALT/10))   {
                     SET FinalFlareStarted TO True.
                     IF KindOfCraft = "SHUTTLE" SET TGTVSpeed to -15.
                     ELSE                       SET TGTVSpeed to -6.
@@ -1010,8 +1013,8 @@ until SafeToExit {
                         SET BRAKES TO AirSPD > TGTSpeed.
                     }
                     ELSE {
-                        IF KindOfCraft = "SHUTTLE" SET TGTVSpeed TO -2.
-                        SET TGTVSpeed TO -1.
+                        IF KindOfCraft = "SHUTTLE" SET TGTVSpeed TO -3.
+                        ELSE SET TGTVSpeed TO -1.5.
                         SET BRAKES TO AirSPD > TGTSpeed.
                     }
                     SET LNAVMODE TO "BNK".

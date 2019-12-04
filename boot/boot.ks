@@ -29,6 +29,21 @@ SET HD TO CORE:VOLUME.
 SET ARC TO 0.
 SET Startup to "startup".
 
+//Adjust the Steering Manager if the ship is somewhat big
+print shipName + " weighting " + ship:mass + " tons".
+if ship:mass > 20 {
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 5.
+	SET STEERINGMANAGER:PITCHPID:KD TO 1.
+	SET STEERINGMANAGER:YAWPID:KD TO 1.
+	SET STEERINGMANAGER:ROLLPID:KD TO 1.
+}
+else if ship:mass > 20 {
+	SET STEERINGMANAGER:MAXSTOPPINGTIME TO 10.
+	SET STEERINGMANAGER:PITCHPID:KD TO 2.
+	SET STEERINGMANAGER:YAWPID:KD TO 2.
+	SET STEERINGMANAGER:ROLLPID:KD TO 2.
+}
+
 PRINT "Attemping to connect to KSC...".
 IF HOMECONNECTION:ISCONNECTED {
 	PRINT "Connected to KSC, copying updated files...".

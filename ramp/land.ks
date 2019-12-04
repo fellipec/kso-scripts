@@ -219,6 +219,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             PRINT "Needed burn time     " + dTime + "                           " at (0,0).
             Print "Available burn time  " + fTime + "                           " at (0,1).
         }
+        WAIT 0.
     }
     uiBanner("Suicide burn","Steering and waiting for burn."). 
 
