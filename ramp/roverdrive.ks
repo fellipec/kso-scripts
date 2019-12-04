@@ -217,10 +217,16 @@ else if ship:status <> "LANDED" {
 local WThrottlePID to PIDLOOP(0.15,0.005,0.020, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WThrottlePID:SETPOINT TO 0. 
 
-local WSteeringPID to PIDLOOP(0.1,0.02,0.01, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
+
+local WSteeringPID to PIDLOOP(0.05,0.001,0.001, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WSteeringPID:SETPOINT TO 0. 
 
-local WRateTurnPID to PIDLOOP(0.2,0.01,0.03, -2, 2). // Kp, Ki, Kd, MinOutput, MaxOutput
+local ConstV is 10.
+local WSKP is 0.05.
+local WSKI is 0.20.
+local WSKD is 0.10.
+
+local WRateTurnPID to PIDLOOP(0.4,0.01,0.05, -2, 2). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WRateTurnPID:SETPOINT TO 0.
 
 until runmode = -1 {
@@ -262,9 +268,13 @@ until runmode = -1 {
             set WSteeringPID:MinOutput to -1 * turnlimit.
             set WRateTurnPID:MaxOutput to  2 * turnlimit.
             set WRateTurnPID:MinOutput to -2 * turnlimit.
+
+            SET WRateTurnPID:KP TO WSKP / max(1,(abs(gs)/ConstV)).
+            SET WRateTurnPID:KI TO WSKP / max(1,(abs(gs)/ConstV)).
+            SET WRateTurnPID:KD TO WSKP / max(1,(abs(gs)/ConstV)).
+
             set WSteeringPID:setpoint to WRateTurnPID:UPDATE(time:seconds,errorSteering).
             set kturn to WSteeringPID:UPDATE(time:seconds,-DriveAngVel()).
-            
         }
         else {
             set kturn to turnlimit * SHIP:CONTROL:PILOTWHEELSTEER.
