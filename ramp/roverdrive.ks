@@ -223,8 +223,8 @@ set WSteeringPID:SETPOINT TO 0.
 
 local ConstV is 10.
 local WSKP is 0.05.
-local WSKI is 0.20.
-local WSKD is 0.10.
+local WSKI is 0.10.
+local WSKD is 0.08.
 
 local WRateTurnPID to PIDLOOP(0.4,0.01,0.05, -2, 2). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WRateTurnPID:SETPOINT TO 0.
