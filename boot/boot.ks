@@ -13,9 +13,11 @@
 // It expects the RAMP scripts files to be saved in 0:/ramp folder.
 /////////////////////////////////////////////////////////////////////////////
 
+
 //Print info
 set Config:IPU to 500. 
 CLEARSCREEN.
+CLEARVECDRAWS().
 print "kOS processor version " + core:version.
 print "Running on " + core:element:name.
 print core:volume:capacity + " total space".
