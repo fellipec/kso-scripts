@@ -15,8 +15,12 @@ local OrbitOptions is lexicon(
 	"X","Return to KSC",
 	"R","Reboot").
 
+local apo_alt is 240000.
+if ship:mass > 440 set apo_alt to 180000.
+
 IF ship:status = "PRELAUNCH" {
-	RUN LAUNCH_ASC(240000).
+	
+	RUN LAUNCH_ASC(apo_alt).
 	IF STAGE:NUMBER > 2 STAGE.
 	WAIT 1.
 	IF STAGE:NUMBER = 1 BAYS ON.

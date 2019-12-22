@@ -218,15 +218,17 @@ local WThrottlePID to PIDLOOP(0.15,0.005,0.020, -1, 1). // Kp, Ki, Kd, MinOutput
 set WThrottlePID:SETPOINT TO 0. 
 
 
-local WSteeringPID to PIDLOOP(0.05,0.001,0.001, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
+local WSteeringPID to PIDLOOP(0.3,0.001,0.005, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WSteeringPID:SETPOINT TO 0. 
 
-local ConstV is 10.
-local WSKP is 0.05.
-local WSKI is 0.10.
-local WSKD is 0.08.
+local ConstV is 5.
+local WSKP is 0.0750.
+local WSKI is 0.0015.
+local WSKD is 0.0003.
+local CVDiv is 1 .// Speed / ConstV 
+local WRLimit is 4.
 
-local WRateTurnPID to PIDLOOP(0.4,0.01,0.05, -2, 2). // Kp, Ki, Kd, MinOutput, MaxOutput
+local WRateTurnPID to PIDLOOP(WSKP,WSKI,WSKD, -WRLimit, WRLimit). // Kp, Ki, Kd, MinOutput, MaxOutput
 set WRateTurnPID:SETPOINT TO 0.
 
 until runmode = -1 {
@@ -266,12 +268,14 @@ until runmode = -1 {
             if gs < 0 set errorSteering to -errorSteering.
             set WSteeringPID:MaxOutput to  1 * turnlimit.
             set WSteeringPID:MinOutput to -1 * turnlimit.
-            set WRateTurnPID:MaxOutput to  2 * turnlimit.
-            set WRateTurnPID:MinOutput to -2 * turnlimit.
+            set WRateTurnPID:MaxOutput to  WRLimit * turnlimit.
+            set WRateTurnPID:MinOutput to -WRLimit * turnlimit.
 
-            SET WRateTurnPID:KP TO WSKP / max(1,(abs(gs)/ConstV)).
-            SET WRateTurnPID:KI TO WSKP / max(1,(abs(gs)/ConstV)).
-            SET WRateTurnPID:KD TO WSKP / max(1,(abs(gs)/ConstV)).
+            set CVDiv to max(1,(abs(gs)/ConstV)).
+
+            SET WRateTurnPID:KP TO WSKP / CVDiv.
+            SET WRateTurnPID:KI TO WSKI / CVDiv.
+            SET WRateTurnPID:KD TO WSKD / CVDiv.
 
             set WSteeringPID:setpoint to WRateTurnPID:UPDATE(time:seconds,errorSteering).
             set kturn to WSteeringPID:UPDATE(time:seconds,-DriveAngVel()).
@@ -333,7 +337,7 @@ until runmode = -1 {
             SET LabelHDG:TEXT to "<b>" + round( targetheading, 2) + "º</b>".
             SET LabelSPD:TEXT to "<b>" + round( targetspeed, 1) + " m/s | "+ round (uiMSTOKMH(targetspeed),1) + " km/h</b>".  
         }
-        SET LabelDashSpeed:TEXT to "<b>Speed: </b>" + round( gs, 1) + " m/s | "+ round (uiMSTOKMH(gs),1) + " km/h".
+        SET LabelDashSpeed:TEXT to "<b>Speed: </b>" + round( gs, 1) + " m/s | "+ round (uiMSTOKMH(gs),1) + " km/h" + " | " + round(WSteeringPID:setpoint,3).
 
         local PEC is partsPercentEC().
         SET LabelDashEC:TEXT to "<b>Charge: </b>" + ROUND(PEC) + "%".
@@ -344,7 +348,7 @@ until runmode = -1 {
         SET SliderSteering:VALUE to kTurn.
         SET SliderThrottle:VALUE to wtVAL. 
     }
-    wait 0. // Waits for next physics tick.
+    wait 0.04. // Waits for next physics tick.
 }
 
 //Clear before end
