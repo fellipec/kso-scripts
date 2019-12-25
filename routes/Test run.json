@@ -1,0 +1,122 @@
+{
+    "items": [
+        {
+            "entries": [
+                "lat",
+                -0.43193378669776478,
+                "lng",
+                -75.146264949728135
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.51493595083031718,
+                "lng",
+                -75.125832784035609
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.52408548166458857,
+                "lng",
+                -75.019121214502078
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.52344196390173958,
+                "lng",
+                -74.947319573788008
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.52335161840554989,
+                "lng",
+                -74.911197524485871
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.52838011984224631,
+                "lng",
+                -74.762464254008563
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.46241891767196919,
+                "lng",
+                -74.723684767405757
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.33664845575860908,
+                "lng",
+                -74.6998947646068
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.14006649634408128,
+                "lng",
+                -74.664785500518775
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.1105959180064912,
+                "lng",
+                -74.664624370011822
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.10439759398498605,
+                "lng",
+                -74.66112736002458
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.097199973321824271,
+                "lng",
+                -74.658392530490019
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        },
+        {
+            "entries": [
+                "lat",
+                -0.093469476317951466,
+                "lng",
+                -74.659393282580311
+            ],
+            "$type": "kOS.Safe.Encapsulation.Lexicon"
+        }
+    ],
+    "$type": "kOS.Safe.Encapsulation.ListValue"
+}

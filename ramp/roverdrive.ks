@@ -10,7 +10,7 @@
 // GUI, Stability control and other improvements by FellipeC 2017
 
 parameter speedlimit is 70. // Speedlimit. Default is 39 m/s, almost 88mph ;)
-parameter turnfactor is 5. // Factor to reduce steering with speed..
+parameter turnfactor is 1. // Factor to reduce steering with speed..
 
 Function DriveAngVel {
     RETURN vdot(facing:topvector, ship:angularvel).
