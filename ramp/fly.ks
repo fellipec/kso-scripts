@@ -310,6 +310,16 @@ SET buttonWP08:ONCLICK TO
         guiWP:hide.
     }.
 
+LOCAL buttonWP09 TO guiWP:ADDBUTTON("Pyramids").
+SET buttonWP09:ONCLICK TO 
+    {
+        set TargetCoord to latlng(-6.49936361939146,-141.682555767695). 
+        set TGTAltitude to 2500.
+        SET LNAVMODE TO "TGT".
+        SET LabelWaypoint:TEXT to "Pyramids".
+        guiWP:hide.
+    }.
+
 
 // Main Window
 LOCAL gui IS GUI(300).
