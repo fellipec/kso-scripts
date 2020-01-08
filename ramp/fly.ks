@@ -584,7 +584,7 @@ local ElevatorPID is PIDLOOP(2.0,0.1,0.0,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
-local BankAnglePID is PIDLOOP(2.0,0.20,0.50,-33,33). 
+local BankAnglePID is PIDLOOP(2.5,0.10,0.50,-33,33). //2.0,0.2
 SET BankAnglePID:SETPOINT TO 0. 
 
 // PID BankVel
@@ -861,7 +861,7 @@ until SafeToExit {
                 //Checks distance from centerline
                 local GDist to TerrainGroundDistance(TargetCoord).
                 if GDist < MinGDist SET MinGDist to GDist.
-                local AllowedDeviation is max(MinGDist * sin(0.3),15).
+                local AllowedDeviation is max(MinGDist * sin(0.2),5).
                 SET CLDist TO CenterLineDistance(TGTRunway).
                 IF ABS(CLDist) < AllowedDeviation {
                     SET LNAVMODE TO "HDG".
