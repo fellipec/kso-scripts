@@ -18,25 +18,28 @@ UNTIL STOPEXEC {
         rcs off.
     }
     ELSE IF SHIP:STATUS = "ORBITING" {
-    rcs off.
-	local choice is uiTerminalMenu(OrbitOptions).
-	if choice = 1 {
-		SET TARGET TO VESSEL("Skylab").
-		RUN RENDEZVOUS.
-	}
-	if choice = 2 {
-		SET TARGET TO VESSEL("ISS").
-		RUN RENDEZVOUS.
-	}
-    if choice = 3 {
-		SET TARGET TO BODY("MUN").
-		RUN TRANSFER.
-	}
-	else if choice = "X" {
-        set target to body.
-		run land.
-	}
-    }
+        rcs off.
+        local choice is uiTerminalMenu(OrbitOptions).
+        if choice = 1 {
+            SET TARGET TO VESSEL("Skylab").
+            RUN RENDEZVOUS.
+        }
+        if choice = 2 {
+            SET TARGET TO VESSEL("ISS").
+            RUN RENDEZVOUS.
+        }
+        if choice = 3 {
+            SET TARGET TO BODY("MUN").
+            RUN TRANSFER.
+        }
+        else if choice = "X" {
+            set target to body.
+            run land.
+        }
+        else if choice = "C" {
+            SET STOPEXEC TO TRUE.
+        }
+    }    
     ELSE IF SHIP:STATUS = "SUB_ORBITAL" OR SHIP:STATUS = "FLYING" {
         abort on.
         run land.
@@ -46,7 +49,6 @@ UNTIL STOPEXEC {
     }
     ELSE IF SHIP:STATUS = "ESCAPING" OR SHIP:STATUS = "DOCKED"{
         BREAK.
-    }
-    REBOOT.
+    }    
 }
 PRINT("PROCEED.").

@@ -32,6 +32,7 @@ PARAMETER LandLng is ship:geoposition:lng.
 
 LOCAL MaxHVel is 1.
 LOCAL FinalBurnHeight is 20.
+if ship:mass > 20 set FinalBurnHeight to FinalBurnHeight * 3.
 
 runoncepath("lib_ui").
 runoncepath("lib_util").
@@ -164,7 +165,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     local BurnStarted is false.
 
     //PID Throttle
-    SET ThrottlePID to PIDLOOP(0.10,0.08,0.02). // Kp, Ki, Kd
+    SET ThrottlePID to PIDLOOP(0.20,0.10,0.04). // Kp, Ki, Kd
     SET ThrottlePID:MAXOUTPUT TO 1.
     SET ThrottlePID:MINOUTPUT TO 0.
     SET ThrottlePID:SETPOINT TO 0. 
@@ -268,7 +269,13 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         // Throttle the rocket 
         //*********************   
         if landRadarAltimeter() < FinalBurnHeight {
-            set TargetVSpeed to TouchdownSpeed.
+            if ShipHVelocity:MAG > MaxHVel {
+                set TargetVSpeed to 0.
+            }
+            else {
+                // set TargetVSpeed to TouchdownSpeed.
+                set TargetVSpeed to TouchdownSpeed * (landRadarAltimeter()*5/FinalBurnHeight).
+            }
         }
         else {
             // Torricelli Equation (Limited to 2G Accl)

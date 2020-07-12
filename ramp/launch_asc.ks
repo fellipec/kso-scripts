@@ -8,6 +8,7 @@
 // Final apoapsis (m altitude)
 parameter apo is 200000.
 parameter hdglaunch is 90. 
+parameter deployfairing is true.
 
 runoncepath("lib_parts.ks"). 
 runoncepath("lib_ui.ks").
@@ -143,7 +144,7 @@ function ascentStaging {
 }
 
 function ascentFairing {
-  if ship:altitude > ship:body:atm:height {
+  if deployfairing and ship:altitude > ship:body:atm:height {
     if partsDeployFairings() uiBanner("Launch","Discard fairings").    
   }
 }

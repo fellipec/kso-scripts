@@ -161,10 +161,12 @@ FUNCTION TakeOff {
     lights on.
     ladders off.
     stage.
-    lock throttle to 1.
+    lock throttle to 0.1.
     local P is min(30,max(10,PitchLimit())).
     LOCK STEERING TO HEADING(mhdg, 0).
     LOCK WHEELSTEERING TO mhdg.
+    wait 15.
+    lock throttle to 1.
     wait until ship:airspeed > 50.
     LOCK STEERING TO HEADING(mhdg, P).
     wait until ship:altitude > LandedAlt + 30.
@@ -644,6 +646,7 @@ local LNAVMODE is "HDG".
 local ManModePitchT0 is 0.
 local ManModeRollT0 is 0.
 local MaxAoA is 20.
+local MaxBank is 33.
 local MaxGAllowed is 7.
 local MaxGProt is False.
 local MinGDist is 50000.
@@ -734,8 +737,9 @@ ELSE IF KindOfCraft = "PLANE" {
     if Ship:AvailableThrustAt(1) > PlaneWeight()*1.1 and Ship:mass < 21 {
         SET BankVelPID:MaxOutput to 1.5.
         SET BankVelPID:MinOutput to -1.5.
-        SET BankAnglePID:MaxOutput to 50.
-        SET BankAnglePID:MinOutput to -50.
+        SET MaxBank to 50.
+        SET BankAnglePID:MaxOutput to MaxBank.
+        SET BankAnglePID:MinOutput to -MaxBank.
         SET PitchAngVelPID:MaxOutput to 0.5.
         SET PitchAngVelPID:MinOutput to -0.5.
         SET PitchAngVelPID:KP TO 0.02000.
@@ -879,8 +883,8 @@ until SafeToExit {
 
                 // Checks for excessive airspeed on final. 
                 IF KindOfCraft = "PLANE" {
-                    if ShortField SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,60)).
-                    else          SET TGTSpeed to min(180,max(SQRT(TGTAltitude)*4,70)).
+                    if ShortField SET TGTSpeed to min(200,max(SQRT(TGTAltitude)*4,60)).
+                    else          SET TGTSpeed to min(200,max(SQRT(TGTAltitude)*4,70)).
                     IF ATMODE <> "OFF" {
                         SET ATMODE to "SPD".
                     }
@@ -1074,6 +1078,15 @@ until SafeToExit {
             
             IF APMODE <> "OFF" {
 
+                // Extreme bank for supersonic speeds
+                If AirSPD > 400 and RadarAltimeter > 1500 {
+                    SET BankAnglePID:MaxOutput to 80.
+                    SET BankAnglePID:MinOutput to -80.
+                }
+                Else{
+                    SET BankAnglePID:MaxOutput to MaxBank.
+                    SET BankAnglePID:MinOutput to -MaxBank.
+                }
 
                 // DEAL WITH VNAV
 

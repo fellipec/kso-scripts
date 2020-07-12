@@ -10,7 +10,11 @@ local OrbitOptions is lexicon(
 
 IF ship:status = "PRELAUNCH" {
 	RUN LAUNCH_ASC(200000).
+	LOCK STEERING TO PROGRADE.
+	WAIT 20.
 	STAGE.
+	WAIT 1.
+	unlock steering.
 	reboot.
 }
 
@@ -27,6 +31,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-2,20).
+		run deorbitsp(-1.5,20).
 	}
 }

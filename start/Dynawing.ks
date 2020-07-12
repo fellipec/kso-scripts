@@ -32,6 +32,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-14,20).
+		run deorbitsp(-11,20).
 	}
 }

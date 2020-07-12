@@ -11,7 +11,7 @@ local OrbitOptions is lexicon(
 
 IF SHIP:STATUS = "PRELAUNCH" {
     
-    RUN launch_asc(100000). 
+    RUN launch_asc(140000). 
     RADIATORS ON.
 	reboot.
 }
