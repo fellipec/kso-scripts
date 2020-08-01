@@ -78,7 +78,7 @@ if ship:status = "ORBITING" {
         }
         else { //KSC Coordinates
             set LandLat to -0.0483334.
-            set LandLng to -74.724722.
+            set LandLng to -74. //724722.
         }
     }
     else if LandMode:contains("COOR") {
@@ -297,7 +297,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         }
 
         // Use RCS to help remove horizontal velocity
-        if BurnStarted AND ShipHVelocity:mag > MaxHVel {
+        if BurnStarted AND ShipHVelocity:mag > 0 {
             RCS ON.
             local sense is ship:facing.
             local dirV is V(
