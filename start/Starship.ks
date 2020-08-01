@@ -58,7 +58,7 @@ declare function landstarship {
     }
     //DESERT
     local LandLat is 0.0.
-    local LandLng is -100.
+    local LandLng is -95.
     LOCAL LandingSite is LATLNG(LandLat,LandLng).
 
     //Define the deorbit periapsis

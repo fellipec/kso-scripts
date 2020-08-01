@@ -30,7 +30,7 @@ PARAMETER LandLat is ship:geoposition:lat.
 PARAMETER LandLng is ship:geoposition:lng.
 
 
-LOCAL MaxHVel is 1.
+LOCAL MaxHVel is 0.5.
 LOCAL FinalBurnHeight is 20.
 if ship:mass > 20 set FinalBurnHeight to FinalBurnHeight * 3.
 
@@ -253,10 +253,16 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
             SET SteerVector to SHIP:UP:VECTOR.
         }
 
-        // Near touchdown make sure the ship is pointed straight up.
-        IF landRadarAltimeter() <  FinalBurnHeight*2 {
+        // Near touchdown wihtout large horizontal component
+        // make sure the ship is pointed straight up.
+        IF landRadarAltimeter() <  FinalBurnHeight*2 and ShipHVelocity:MAG < MaxHVel {
             SET SteerVector to SHIP:UP:VECTOR.
-        }        
+        }
+        // Near touchdown with some horizontal component
+        // Try to compensate with steering
+        ELSE IF landRadarAltimeter() <  FinalBurnHeight*2 and ShipHVelocity:MAG >= MaxHVel {
+            SET SteerVector to SHIP:UP:VECTOR - (ShipHVelocity:normalized * (ShipHVelocity:MAG/100) ). 
+        }
         // If the horizontal velocity is low enough, just compensate for ship velocity.
         ELSE IF ShipHVelocity:MAG < MaxHVel {
             SET SteerVector to -ShipVelocity.
