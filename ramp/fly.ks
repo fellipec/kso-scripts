@@ -316,9 +316,19 @@ LOCAL buttonWP09 TO guiWP:ADDBUTTON("Pyramids").
 SET buttonWP09:ONCLICK TO 
     {
         set TargetCoord to latlng(-6.49936361939146,-141.682555767695). 
-        set TGTAltitude to 2500.
+        set TGTAltitude to 3000.
         SET LNAVMODE TO "TGT".
         SET LabelWaypoint:TEXT to "Pyramids".
+        guiWP:hide.
+    }.
+
+LOCAL buttonWP10 TO guiWP:ADDBUTTON("Dessert Airfield").
+SET buttonWP10:ONCLICK TO 
+    {
+        set TargetCoord to latlng(-6.6,-144.04). 
+        set TGTAltitude to 2000.
+        SET LNAVMODE TO "TGT".
+        SET LabelWaypoint:TEXT to "Dessert".
         guiWP:hide.
     }.
 
