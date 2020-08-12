@@ -237,4 +237,13 @@ FUNCTION partsForwardThrust {
     }.
 }
 
-
+FUNCTION partsAblator {
+    LOCAL RES IS SHIP:RESOURCES.
+    LOCAL AMT IS 0.
+    FOR R IN RES {
+        IF R:name = "Ablator" {
+            SET AMT TO AMT + R:amount.
+        }
+    }
+    RETURN AMT.
+}

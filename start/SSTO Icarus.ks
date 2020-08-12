@@ -17,7 +17,7 @@ IF ship:status = "PRELAUNCH" or ship:status = "LANDED" {
     brakes on.
     wait 2.
     brakes off.
-    RUN LAUNCH(200000).    
+    RUN LAUNCH(100000).    
     reboot.
 }
 
@@ -34,6 +34,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-13,20).
+		run deorbitsp(-20,20).
 	}
 }

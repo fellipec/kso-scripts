@@ -221,6 +221,7 @@ ascentFairing(). wait launch_tick.
 fuelcells on.
 panels on.
 radiators on.
+wait 10.
 partsExtendAntennas().
 partsEnableFissionReactors().
 wait launch_tick.

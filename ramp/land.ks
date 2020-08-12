@@ -7,7 +7,7 @@
 // Usage: RUN LANDVAC(<mode>,<latitude>,<longitude>).
 //
 //       Parameters:
-//          <mode>: Can be TARG, COOR or SHIP.
+//          <mode>: Can be TARG, COOR, KCS or SHIP.
 //                  -TARG (default) will try to land on the selected target. 
 //                  If has no valid target falls back to SHIP.
 //                  -COOR will try to land on <latitude> and <longitude>. 
@@ -46,6 +46,17 @@ LADDERS OFF.
 
 DrawDebugVectors on.
 
+global LandSPV0 is 0.
+global LandSPT0 is 0.
+
+//Ship heatshield
+LOCAL HasHeatshield is partsAblator() > 0.
+
+// Functions.
+function LandDragAcc {
+    if time:SECONDS - LandSPT0 > 0 return (vxcl(SHIP:UP:VECTOR,SHIP:velocity:surface):mag - LandSPV0 ) / (TIME:SECONDS - LandSPT0).
+    else Return 0.
+}
 
 
 // ************
@@ -69,17 +80,17 @@ if ship:status = "ORBITING" {
         uiBanner("Deorbit","Circularizing the orbit").
         run circ.
     }
-
     // Find where to land
+    if LandMode:contains("TARG") and (not (hastarget and TARGET:BODY = SHIP:BODY)) {
+        set LandMode to "KSC". //If Target mode selected but no target, revert to KSC
+    }
     if LandMode:contains("TARG") { 
-        if hastarget and TARGET:BODY = SHIP:BODY { // Make sure have a target in the same planet at least! Note it doesn't check if target is landed/splashed, will just use it's position, for all it cares.
             set LandLat to utilLongitudeTo360(TARGET:GEOPOSITION:LAT).
             set LandLng to utilLongitudeTo360(TARGET:GEOPOSITION:LNG).
-        }
-        else { //KSC Coordinates
-            set LandLat to -0.0483334.
-            set LandLng to -74. //724722.
-        }
+    }
+    else if LandMode:contains("KSC") { //KSC Coordinates
+        set LandLat to -0.05.
+        set LandLng to -74.73.
     }
     else if LandMode:contains("COOR") {
         set LandLat to utilLongitudeTo360(LandLat).
@@ -138,7 +149,7 @@ if ship:status = "ORBITING" {
     uiBanner("Deorbit","Time warping until atmosphere"). 
     SAS OFF.
     SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
-    SET KUNIVERSE:TIMEWARP:WARP to 2.
+    SET KUNIVERSE:TIMEWARP:WARP to 3.
     WAIT UNTIL SHIP:ALTITUDE < BODY:ATM:HEIGHT * 1.2.
     KUNIVERSE:TIMEWARP:CANCELWARP().
     wait until kuniverse:timewarp:issettled.
@@ -163,7 +174,12 @@ if ship:status = "ORBITING" {
 if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     local TouchdownSpeed is 2.
     local BurnStarted is false.
-
+    if HasHeatshield {
+        LOCK steering to retrograde.
+    }
+    else {
+        LOCK steering TO lookDirUp(-vxcl(SHIP:UP:VECTOR,SHIP:velocity:surface),ship:up:vector).
+    }
     //PID Throttle
     SET ThrottlePID to PIDLOOP(0.20,0.10,0.04). // Kp, Ki, Kd
     SET ThrottlePID:MAXOUTPUT TO 1.
@@ -196,6 +212,7 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
     Lock fTime to FuelTime().
     local g is body:mu / ((body:radius)^2).
     lock ShipVelocity to SHIP:velocity:surface.
+    lock ShipHVelocity to vxcl(SHIP:UP:VECTOR,ShipVelocity).
     lock ShipWeight to (Ship:Mass * g).
     lock accl to (Ship:AvailableThrustat(1) - ShipWeight) / Ship:Mass.
     lock dTime to ShipVelocity:MAG / accl.
@@ -216,21 +233,44 @@ if ship:status = "SUB_ORBITAL" or ship:status = "FLYING" {
         wait until chutes and landRadarAltimeter() < 1000.
     }
 
+    // Wait for the right time to start burning
+    until ship:altitude < 50000 {
+        set LandSPV0 to ShipHVelocity:mag.
+        set LandSPT0 to time:SECONDS.
+    }
+    uiBanner("Suicide burn","Breaking").
+    local tVal is 0.
+    lock Throttle to tVal.
     Until dTime < fTime {
         if DrawDebugVectors {
             PRINT "Needed burn time     " + dTime + "                           " at (0,0).
             Print "Available burn time  " + fTime + "                           " at (0,1).
+            print "Acc                  " + LandDragAcc() + "                           " at (0,15).
         }
-        WAIT 0.
+        if (not HasHeatshield) and fTime > 10 {
+            if LandDragAcc() > -min((((50000 - ship:altitude)/10000)*1.5),10) set tval to min(tval + 0.1,1).
+            else set tval to max(0,tVal - 0.1).
+        }
+        else {
+            set tVal to 0.
+        }        
+        WAIT 0.2.
     }
+    // Make sure the ship is flying at least the same down as horizontal
+    Until ShipHVelocity:mag/ShipVelocity:mag < 0.5 or (HasHeatshield and ShipHVelocity:mag/ShipVelocity:mag < 0.75) {
+        set tVal to 1.
+    }
+    set tval to 0.
+    unlock throttle.
     uiBanner("Suicide burn","Steering and waiting for burn."). 
+    
 
     UNLOCK STEERING.
     LIGHTS ON. //We want the Kerbals to see where they are going right?
     LEGS OFF. GEAR OFF.
 
     // Throttle and Steering
-    local tVal is 0.
+    SET tVal to 0.
     lock Throttle to tVal.
     local sDir is ship:up.
     lock steering to sDir.

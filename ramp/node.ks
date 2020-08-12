@@ -7,7 +7,7 @@
 
 // Quick save just for safety. We never know when KSP will mess with our saves.
 WAIT UNTIL KUniverse:CANQUICKSAVE.
-KUniverse:QUICKSAVETO("RAMP-Before Node of  "+ SHIP:name).
+KUniverse:QUICKSAVETO("RAMP-Before Node execution").
 
 run once lib_ui.
 run once lib_util.

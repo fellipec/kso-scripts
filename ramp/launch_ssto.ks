@@ -12,10 +12,10 @@ global LaunchSPV0 is ship:AIRSPEED.
 global LaunchSPT0 is time:SECONDS.
 
 // Local Variables.
-Local TGTClimbAcc is 5.             // Acceleration in m/s² the ship try to keep during climb
-Local ClimbTick is 0.25.            // Time between each loop run
-Local ClimbDefaultPitch is 20.      // Default climb pitch
-Local GTAltitude is 45000.          // End of "Gravit turn" (When ship will fly with pitch 0 until apoapsis)
+Local TGTClimbAcc is 6.             // Acceleration in m/s² the ship try to keep during climb
+Local ClimbTick is 0.05.            // Time between each loop run
+Local ClimbDefaultPitch is 15.      // Default climb pitch
+Local GTAltitude is 50000.          // End of "Gravit turn" (When ship will fly with pitch 0 until apoapsis)
 Local AirBreathingAlt is 23000.     // From this altitude and up, dual-mode engines will change to closed cycle. 
 Local ThrottleValue is 0.
 
