@@ -592,7 +592,7 @@ local VSpeedPID is PIDLOOP(0.15,0.001,0.003,-20,20).
 SET VSpeedPID:SETPOINT TO 0.
 
 //PID Elevator 
-local ElevatorPID is PIDLOOP(2.0,0.1,0.0,-1,1).
+local ElevatorPID is PIDLOOP(1.0,0.1,0.0,-1,1).
 SET ElevatorPID:SETPOINT TO 0. 
 
 // PID BankAngle
@@ -745,8 +745,8 @@ ELSE IF KindOfCraft = "PLANE" {
     SET PitchAnglePID:MinOutput to -PitchLimit().    
     // Adjust for high performance planes (TWR > 1)
     if Ship:AvailableThrustAt(1) > PlaneWeight()*1.1 and Ship:mass < 21 {
-        SET BankVelPID:MaxOutput to 1.5.
-        SET BankVelPID:MinOutput to -1.5.
+        SET BankVelPID:MaxOutput to 2.5.
+        SET BankVelPID:MinOutput to -2.5.
         SET MaxBank to 50.
         SET BankAnglePID:MaxOutput to MaxBank.
         SET BankAnglePID:MinOutput to -MaxBank.
@@ -755,7 +755,7 @@ ELSE IF KindOfCraft = "PLANE" {
         SET PitchAngVelPID:KP TO 0.02000.
         SET PitchAngVelPID:Ki TO 0.00002.
         SET PitchAngVelPID:KD TO 0.00003.
-        SET ElevatorPID:KP TO 1.150. 
+        SET ElevatorPID:KP TO 1.000. 
         SET ElevatorPID:KI TO 0.200. 
         SET ElevatorPID:KD TO 0.010. 
         SET VSpeedPID:MaxOutput to 40.
@@ -1123,7 +1123,7 @@ until SafeToExit {
                 }
 
                 IF VNAVMODE = "GS"{ // Glideslope follow mode
-                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,GSProgAng/2).
+                    SET ElevatorPID:Setpoint to PitchAngVelPID:UPDATE(TimeNow,GSProgAng/3).
                 }
                 ELSE IF VNAVMODE = "ALT" {
                     SET dAlt to BaroAltitude - TGTAltitude.
