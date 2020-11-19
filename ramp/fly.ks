@@ -152,6 +152,8 @@ Function PitchLimit {
 
 
 FUNCTION TakeOff {
+    local takeoffspeed is 50.
+    if Ship:AvailableThrustAt(1) < 70 set takeoffspeed to 25.
     
     local LandedAlt is ship:altitude.
     local mhdg is round(MagHeading()).
@@ -167,7 +169,7 @@ FUNCTION TakeOff {
     LOCK WHEELSTEERING TO mhdg.
     wait 15.
     lock throttle to 1.
-    wait until ship:airspeed > 50.
+    wait until ship:airspeed > takeoffspeed.
     LOCK STEERING TO HEADING(mhdg, P).
     wait until ship:altitude > LandedAlt + 30.
     gear off.

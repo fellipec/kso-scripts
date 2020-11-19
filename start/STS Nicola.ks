@@ -1,11 +1,5 @@
 @lazyglobal off.
 
-SET STEERINGMANAGER:MAXSTOPPINGTIME TO 5.
-SET STEERINGMANAGER:PITCHPID:KD TO 1.
-SET STEERINGMANAGER:YAWPID:KD TO 1.
-SET STEERINGMANAGER:ROLLPID:KD TO 1.
-
-
 runoncepath("lib_ui").
 
 local OrbitOptions is lexicon(
@@ -33,6 +27,6 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-15).
+		run deorbitsp(-10).
 	}
 }
