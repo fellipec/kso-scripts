@@ -152,17 +152,19 @@ Function PitchLimit {
 
 
 FUNCTION TakeOff {
-    local takeoffspeed is 50.
-    if Ship:AvailableThrustAt(1) < 70 set takeoffspeed to 25.
-    
+    local takeoffspeed is 50.     
     local LandedAlt is ship:altitude.
+    // Set the takeoff run heading. Try to snap to 90° and 0°
     local mhdg is round(MagHeading()).
-    if mhdg > 86 and mhdg < 94 set mhdg to 90.
+    if mhdg > 80 and mhdg < 100 set mhdg to 90.
+    if mhdg > 350 or mhdg < 10 set mhdg to 0.
     sas off.
     brakes off.
     lights on.
     ladders off.
     stage.
+    // Reduce take off speed if the engine is weak
+    if Ship:AvailableThrustAt(1) < 70 set takeoffspeed to 25.    
     lock throttle to 0.1.
     local P is min(30,max(10,PitchLimit())).
     LOCK STEERING TO HEADING(mhdg, 0).
@@ -723,12 +725,12 @@ IF KindOfCraft = "SHUTTLE" {
     SET BankVelPID:maxoutput to 1.
 
     //Yaw Damper
-    SET YawDamperPID:KP to 0.80. 
-    SET YawDamperPID:KI to 0.1.
-    SET YawDamperPID:KD to 0.25.
+    SET YawDamperPID:KP to 0.800. 
+    SET YawDamperPID:KI to 0.150.
+    SET YawDamperPID:KD to 0.250.
     SET YawVelPID:KP to 0.050. 
-    SET YawVelPID:KI to 0.005.
-    SET YawVelPID:KD to 0.005.
+    SET YawVelPID:KI to 0.015.
+    SET YawVelPID:KD to 0.015.
 
     //Air engine detection
     LIST Resources IN ShipResources.

@@ -14,7 +14,7 @@ local OrbitOptions is lexicon(
 	"X","Return to KSC").
 
 IF ship:status = "PRELAUNCH" {
-	RUN LAUNCH_ASC(180000).
+	RUN LAUNCH_ASC(150000).
     UNTIL STAGE:NUMBER <= 2 { STAGE. WAIT 1.} // Discard the tank
 	BAYS ON.
 	WAIT 5.
@@ -36,7 +36,7 @@ ELSE IF ship:status = "ORBITING" {
 		RUN RENDEZVOUS.
 	}
 	else if choice = "X" {
-		run deorbitsp(-25,15).
+		run deorbitsp(-22,15).
 	}
 }
 ELSE IF SHIP:STATUS = "FLYING" {
